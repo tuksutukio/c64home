@@ -54,6 +54,15 @@ runtime, entry point is just the start of the `CODE` segment) — see
 `src/irq_border.s` for an example and why plain-asm needs a different
 config than C.
 
+**Charset mode differs between the two examples.** The C runtime's
+startup code (`crt0.s`'s `init`) sends PETSCII control code 14 ("switch to
+lowercase charset") before calling `_main`, so C-linked binaries start in
+the upper/lowercase charset. The plain-asm example skips crt0 entirely, so
+it never sends that code and the machine stays in its post-reset default
+(uppercase + graphics) charset. This doesn't affect screen codes 1–26
+(letters render as uppercase in either charset) — it only matters for the
+$40–$5F range (graphics vs. lowercase glyphs).
+
 **Gotcha:** with `-t c64`, cc65's charset translation maps *lowercase*
 source letters to the PETSCII codes that render as uppercase on screen (the
 normal C64 convention) — uppercase source letters map to the shifted
