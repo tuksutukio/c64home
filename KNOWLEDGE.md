@@ -87,6 +87,29 @@ it into a reference doc other sessions will act on.
   (`~/.cargo/bin/ru64`, `/Applications/VICE-GTK3-<version>/bin/petcat`) —
   `cl65` typically doesn't need this treatment, but doesn't hurt to be
   explicit if the invocation context is unknown.
+
+  **A step deeper, and worth flagging prominently — a Makefile's own
+  `export PATH := ...` can silently fail to fix this on macOS's stock
+  GNU Make.** macOS ships GNU Make **3.81**. For a recipe line containing
+  **no shell metacharacters** (no `;`, `|`, `&&`, ...) — e.g. a plain
+  `cl65 -t c64 -o build/foo.prg src/foo.c` — Make 3.81 skips spawning a
+  shell entirely and `execve()`s the command directly, doing its own
+  `PATH` search that does **not** see a same-Makefile `export PATH :=
+  ...` reassignment. `make -p` will confirm the variable is correctly set
+  internally, which makes this look fixed when it isn't — the tell is
+  `cl65: No such file or directory` despite that. `.ONESHELL:` does not
+  help here either; it only exists from GNU Make 3.82 onward and is a
+  silent no-op on 3.81. **Fix**: end every recipe line that depends on the
+  exported `PATH` with a trailing `;` (or any shell metacharacter) to
+  force Make to route it through a real shell instead of `execve`-ing it
+  directly. Confirmed by a downstream project (reproduced in isolation
+  with a minimal test Makefile, then verified full pipeline — all three
+  language builds, `make host`, a live `make info` round-trip to real
+  hardware — works from a fully stripped `env -i HOME=$HOME
+  PATH=/usr/bin:/bin make ...` with nothing pre-sourced) and independently
+  reproduced here the same way before this repo's own `Makefile` was
+  updated to apply it (`export PATH := ...` at the top, trailing `;` on
+  every `cl65`/`ru64`/`petcat`-invoking recipe line).
 - **`petcat`** (BASIC tokenizer, for `.bas` → `.prg`): ships with
   [VICE](https://vice-emu.sourceforge.io/), not a separate package. On
   this machine it's a GUI app bundle, not a Homebrew install:
