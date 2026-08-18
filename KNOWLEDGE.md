@@ -234,6 +234,26 @@ loop detects the CR (`13`), explicitly `lda #13 / jsr CHROUT` yourself
 before printing anything else, rather than relying on the input path to
 have already produced a newline.
 
+### `peek` is not ground truth for live/volatile hardware state
+
+The screen-RAM workaround above is reliable because screen RAM is
+*settled* data by the time you peek it (the program already finished
+writing it). That reliability does **not** extend to peeking a
+live-changing hardware register (e.g. CIA1 `$DC00`, joystick/keyboard
+input) to diagnose timing-sensitive behavior — an external REST `peek` is
+asynchronous relative to the running 6502 and isn't guaranteed to reflect
+what the 6502's own `LDA` sees moment-to-moment. A downstream project
+(`cbm-joy`) chased an apparently-flickering joystick-port-2 fire reading
+this way and it was a dead end. **The fix wasn't more peeking**: have the
+*running program itself* snapshot the volatile byte into a fixed screen
+cell every frame — that write is now settled data by the time anything
+peeks it, same as any other screen-RAM read. Doing that revealed the
+real cause: the joystick's own autofire circuit was genuinely pulsing the
+switch on/off while held — not a code or CIA-register-sharing bug at all.
+General lesson: to observe live hardware state reliably over this WiFi
+pipeline, have the C64 program record it into RAM first; don't peek the
+volatile register directly.
+
 ## cc65 build configs: C runtime vs pure assembly
 
 `cl65 -t c64` picks a *character set translation* (see below) but the
