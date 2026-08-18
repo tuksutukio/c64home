@@ -61,6 +61,15 @@ it into a reference doc other sessions will act on.
   default via this install path; both need adding to shell rc manually
   (no `~/.cargo/env` gets created the way official rustup-init would do
   it).
+- **All of these PATH additions live in `~/.zshrc`, which zsh only sources
+  for *interactive* shells.** A non-interactive invocation — a script, a
+  cron job, a coding agent's own shell tool — gets `command not found` for
+  `ru64`/`petcat`/`cl65` etc. even though they "just work" in a normal
+  terminal. Confirmed independently by a downstream project attempting to
+  drive this pipeline non-interactively. Either source `~/.zshrc`
+  explicitly first, or use absolute paths
+  (`~/.cargo/bin/ru64`, `/Applications/VICE-GTK3-<version>/bin/petcat`) in
+  anything that isn't an interactive shell.
 - **`petcat`** (BASIC tokenizer, for `.bas` → `.prg`): ships with
   [VICE](https://vice-emu.sourceforge.io/), not a separate package. On
   this machine it's a GUI app bundle, not a Homebrew install:
@@ -93,6 +102,21 @@ it into a reference doc other sessions will act on.
   sudo xattr -d com.apple.quarantine /Applications/VICE-GTK3-<version>/bin/petcat
   ```
   (needs `sudo` — it's inside `/Applications`).
+
+  **In a non-interactive context, the same root cause shows up differently
+  and more confusingly**: a downstream project ran the quarantined
+  `~/cbm/bin/petcat` (unsigned x86_64) non-interactively and got a silent
+  `SIGKILL` (exit 137) with **no error message at all** — easy to
+  misdiagnose as a Rosetta/architecture problem instead of Gatekeeper (that
+  was the first, wrong guess). Same `xattr -d com.apple.quarantine` fix
+  applies. Important nuance confirmed in that investigation: **the
+  quarantine flag specifically is what triggers this, not merely being
+  unsigned** — `~/.cargo/bin/ru64` (from `cargo install`) is also unsigned
+  (`codesign -dv` reports "not signed at all" for it too, and `spctl -a
+  -vv` reports it "rejected") but carries no quarantine xattr and runs
+  fine. `spctl` reporting "rejected" alone is not, by itself, a sign
+  something will fail to execute — only `com.apple.quarantine` being
+  present is.
 
 ## Ultimate64 network control
 
@@ -139,6 +163,36 @@ decodes screen codes to ASCII:
 
 This is good enough to verify a program's text output end-to-end over
 WiFi without ever needing a cable.
+
+### Interactive testing over WiFi *is* possible — don't over-read the streaming limitation above
+
+The video/audio streaming restriction above is specifically about the VIC
+UDP stream (`ru64 screenshot`) — it does **not** mean WiFi is read-only or
+non-interactive. `ru64 <host> type "<text>"` ("Emulate keyboard input")
+emulates keystrokes — Unicode input, converted to PETSCII, typed into
+whatever's running — and works fine over WiFi. Combined with the
+screen-RAM `peek` readback above, this makes real interactive
+testing possible end to end over WiFi: type a response into a running
+program's input prompt, then peek screen RAM to confirm what it did with
+it. Confirmed by a downstream project (typed a numeric answer into a
+running program, read the result back via screen-RAM peek).
+
+Usage note: send Enter as a literal `\n`, not `\r` — e.g.
+`ru64 <host> type $'\n'` in bash. `\r` was tested and did not reliably
+trigger the same behavior.
+
+**Narrower gotcha, low recurrence**: if the receiving program reads input
+via a raw KERNAL `CHRIN` loop in pure assembly (as opposed to BASIC's
+`INPUT` or cc65 C's `stdio`/`fgets`, both confirmed correct), a `type`-sent
+Enter doesn't reliably advance the screen editor's cursor to a fresh row
+the way physically pressing Enter does — purely cosmetic (all actual input
+parsing/output logic was unaffected in testing), but the first output line
+after the prompt can land appended to the same row instead of a new one.
+Root cause not diagnosed further since it's cosmetic and narrow (pure-asm
++ raw `CHRIN` + `ru64 type` specifically). Workaround: after your `CHRIN`
+loop detects the CR (`13`), explicitly `lda #13 / jsr CHROUT` yourself
+before printing anything else, rather than relying on the input path to
+have already produced a newline.
 
 ## cc65 build configs: C runtime vs pure assembly
 

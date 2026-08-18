@@ -85,6 +85,17 @@ different linker configs, and `src/irq_border.s` for an example. A
 `src/%.bas` pattern rule tokenizes plain-text BASIC 2.0 listings via
 `petcat -w2` — see `src/hello_basic.bas`.
 
+**Naming convention**: give each language variant of the same program a
+**distinct basename** (`foo.c`, `foo_asm.s`, `foo_bas.bas` — not all named
+`foo.*`). If two source files sharing a stem could both produce
+`build/foo.prg` (e.g. `src/foo.c` and `src/foo.bas` both present), which
+pattern rule wins is ambiguous/unpredictable — `make` doesn't arbitrate
+that for you. This repo's own examples (`hello.c`, `hello_basic.bas`,
+`irq_border.s`) happen to avoid the collision by luck (all different
+stems already), so it isn't obvious from the reference examples alone —
+worth being deliberate about if you ever want a C/asm/BASIC comparison of
+the *same* program, which is a natural thing to want from this pipeline.
+
 ## Known-good state
 
 - `src/hello.c` — a `printf` smoke test — built, deployed, and run on real
