@@ -166,3 +166,16 @@ per-session, not fixed. See `tools/u64-hosts.txt` (name → IP map),
 `.ultimate_host` statefile), and the Makefile's `check-host`/`host`
 targets. `ULTIMATE_HOST=<ip>` on the command line overrides for one
 invocation without touching the saved selection.
+
+### Using this from another project
+
+This repo (`~/src/cc65`) is meant to stay the single source of truth for
+the device list — new project directories elsewhere under `~/src/` should
+reference `~/src/cc65/tools/select-u64.sh` and `tools/u64-hosts.txt` by
+path rather than copying them, so there's one place to add a device or fix
+a bug. Each project's own `Makefile`/build layout will naturally be
+project-specific regardless, and can still read whatever `.ultimate_host`
+statefile it wants (own copy, or point at this repo's) — the two aren't
+coupled. If a project ever needs the selector itself to behave
+differently, fork a local copy then; these are small scripts, so that's a
+cheap, reversible decision to defer rather than commit to upfront.
