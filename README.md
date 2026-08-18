@@ -31,10 +31,11 @@ Makefile        build + deploy targets
 ## Usage
 
 ```sh
-make          # compile src/hello.c -> build/hello.prg
-make run      # build, then send + run it on the Ultimate64 over WiFi
-make info     # query the Ultimate64 (firmware/model), sanity check connectivity
-make screen   # read back the C64 text screen over WiFi (see below)
+make                              # compile src/hello.c -> build/hello.prg
+make run                          # build, then send + run it on the Ultimate64 over WiFi
+make run PRG=build/irq_border.prg # build/run a different example (see src/)
+make info                         # query the Ultimate64 (firmware/model), sanity check connectivity
+make screen                       # read back the C64 text screen over WiFi (see below)
 make clean
 ```
 
@@ -44,6 +45,19 @@ per-invocation or via env var:
 ```sh
 make run ULTIMATE_HOST=192.168.1.165
 ```
+
+`PRG` picks which example to build/run; it defaults to `build/hello.prg`. A
+`src/%.c` pattern rule builds C sources with the default `c64.cfg` (full C
+runtime, entry point `_main`); a `src/%.s` pattern rule builds pure-assembly
+sources with `c64-asm.cfg -u __EXEHDR__` instead (BASIC "SYS" header, no C
+runtime, entry point is just the start of the `CODE` segment) — see
+`src/irq_border.s` for an example and why plain-asm needs a different
+config than C.
+
+**Gotcha:** with `-t c64`, cc65's charset translation maps *lowercase*
+source letters to the PETSCII codes that render as uppercase on screen (the
+normal C64 convention) — uppercase source letters map to the shifted
+graphics range instead. Write string literals in lowercase.
 
 ## Closing the debugging loop over WiFi
 
@@ -62,7 +76,15 @@ program's text output without needing a cable. Wired to `make screen`.
 
 ## Known-good state
 
-`src/hello.c` — a `printf` smoke test — has been built, deployed, and run on
-real Ultimate64 hardware over WiFi, and its output was confirmed via
-`make screen`. Toolchain and network path are both verified working end to
-end.
+- `src/hello.c` — a `printf` smoke test — built, deployed, and run on real
+  Ultimate64 hardware over WiFi; output confirmed via `make screen`.
+- `src/irq_border.s` — plain 6502 asm, no C runtime. Prints a message, then
+  hooks the KERNAL RAM IRQ vector (`$0314`/`$0315`) with a handler that does
+  `inc $d020` (border color) and chains to the stock KERNAL IRQ continuation
+  (`$ea31`) so keyboard scanning/jiffy clock/cursor blink keep working.
+  Deployed and confirmed on real hardware: polling `$d020` via `ru64 peek`
+  after the program returns to `READY.` shows it incrementing on its own,
+  proving the hook outlives the program that installed it.
+
+Toolchain and network path are both verified working end to end for both
+C and pure-assembly programs.

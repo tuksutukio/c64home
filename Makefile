@@ -5,18 +5,20 @@ RU64     := ru64
 
 ULTIMATE_HOST ?= 192.168.1.165
 
-SRCS := $(wildcard src/*.c) $(wildcard src/*.s)
-PRG  := $(BUILD)/hello.prg
+PRG ?= $(BUILD)/hello.prg
 
-.PHONY: all run clean info
+.PHONY: all run clean info screen
 
 all: $(PRG)
 
 $(BUILD):
 	mkdir -p $(BUILD)
 
-$(PRG): src/hello.c | $(BUILD)
-	$(CL65) -t $(TARGET) -o $@ src/hello.c
+$(BUILD)/%.prg: src/%.c | $(BUILD)
+	$(CL65) -t $(TARGET) -o $@ $<
+
+$(BUILD)/%.prg: src/%.s | $(BUILD)
+	$(CL65) -t $(TARGET) -C c64-asm.cfg -u __EXEHDR__ -o $@ $<
 
 run: $(PRG)
 	$(RU64) $(ULTIMATE_HOST) run $(PRG)
