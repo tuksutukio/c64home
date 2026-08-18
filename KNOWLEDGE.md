@@ -29,6 +29,25 @@ gets genuinely unwieldy, that's the signal to split it into its own file
 (the way C64-REFERENCE.md already got split out) — not something to
 pre-empt before it actually happens.
 
+## Research process notes (writing/extending the reference docs)
+
+**WebFetch's page-summarization can silently drop or invert table rows on
+large reference pages — treat a surprising result as a signal to
+double-check, not as fact.** Bit us twice building
+C64-REFERENCE.md/6502-OPCODES.md: (1) a summarized fetch of the
+devili.iki.fi PRG transcription reported `SETLFS`'s `A`/`X` registers
+swapped from the well-established convention — resolved by fetching the
+raw page text directly (bypassing summarization) and cross-checking
+against sta.c64.org, which confirmed the summarizer's page had a genuine
+OCR/transcription error, not us; (2) a summarized fetch of oxyron.de's
+undocumented-opcode page claimed the single-byte NOPs
+(`$1A`/`$3A`/`$5A`/`$7A`/`$DA`/`$FA`) don't exist — flatly wrong, caught
+because it contradicted well-known 6502 lore, confirmed via a follow-up
+search. Both times the fix was the same: when a fetched fact contradicts
+strong prior knowledge or "smells" surprising, re-fetch raw / cross-check
+a second independent source before trusting it, rather than propagating
+it into a reference doc other sessions will act on.
+
 ## Toolchain
 
 - **cc65**: `brew install cc65`. Gives `cl65` (driver), `cc65`, `ca65`,
