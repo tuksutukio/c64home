@@ -29,6 +29,20 @@ one. Add to it whenever something non-obvious gets discovered again.
   lowercase-source→uppercase-screen PETSCII conversion automatically, same
   convention as cc65's `-t c64` (see charset section below).
 
+  **There is more than one `petcat` on this machine — use the VICE.app one
+  above, not `~/cbm/bin/petcat`.** The latter is a stale x86_64 binary
+  leftover from an old (2021) setup. Both happen to be
+  `com.apple.quarantine`-flagged (both downloaded via Chrome at some
+  point), but only `~/cbm/bin/petcat` can actually trigger Gatekeeper's
+  "cannot be opened, move to Trash" dialog if run directly — it's a raw
+  unsigned Mach-O executable. The VICE.app copy is a **shell script
+  wrapper** (`file` reports "Bourne-Again shell script"), and Gatekeeper's
+  app-execution gate doesn't apply to shell scripts the way it does to
+  binaries, so its quarantine flag is harmless. If `petcat` on `PATH`
+  ever throws that dialog, `PATH` resolved to the wrong copy — check
+  `which petcat` resolves under `/Applications/VICE-GTK3-*/bin`, not
+  `~/cbm/bin`.
+
 ## Ultimate64 network control
 
 - The underlying mechanism is officially called the **Ultimate Command
