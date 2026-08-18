@@ -2,6 +2,7 @@ TARGET     ?= c64
 BUILD      := build
 CL65       := cl65
 RU64       := ru64
+PETCAT     := petcat
 STATE_FILE := .ultimate_host
 
 PRG ?= $(BUILD)/hello.prg
@@ -28,6 +29,9 @@ $(BUILD)/%.prg: src/%.c | $(BUILD)
 
 $(BUILD)/%.prg: src/%.s | $(BUILD)
 	$(CL65) -t $(TARGET) -C c64-asm.cfg -u __EXEHDR__ -o $@ $<
+
+$(BUILD)/%.prg: src/%.bas | $(BUILD)
+	$(PETCAT) -w2 -o $@ -- $<
 
 check-host:
 	@if [ -z "$(ULTIMATE_HOST)" ]; then \

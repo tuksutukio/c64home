@@ -18,6 +18,16 @@ one. Add to it whenever something non-obvious gets discovered again.
   default via this install path; both need adding to shell rc manually
   (no `~/.cargo/env` gets created the way official rustup-init would do
   it).
+- **`petcat`** (BASIC tokenizer, for `.bas` → `.prg`): ships with
+  [VICE](https://vice-emu.sourceforge.io/), not a separate package. On
+  this machine it's a GUI app bundle, not a Homebrew install:
+  `/Applications/VICE-GTK3-<version>/bin/petcat`. Tokenize a plain-text
+  BASIC 2.0 listing with `petcat -w2 -o out.prg -- in.bas` (`-w2` = target
+  BASIC v2 keywords, i.e. stock C64 BASIC). No cc65/compiler involvement
+  needed for BASIC at all — write the listing as normal text (line
+  numbers included), petcat handles tokenizing *and* the
+  lowercase-source→uppercase-screen PETSCII conversion automatically, same
+  convention as cc65's `-t c64` (see charset section below).
 
 ## Ultimate64 network control
 
