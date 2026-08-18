@@ -1,13 +1,22 @@
-TARGET   ?= c64
-BUILD    := build
-CL65     := cl65
-RU64     := ru64
-
-ULTIMATE_HOST ?= 192.168.1.165
+TARGET     ?= c64
+BUILD      := build
+CL65       := cl65
+RU64       := ru64
+STATE_FILE := .ultimate_host
 
 PRG ?= $(BUILD)/hello.prg
 
-.PHONY: all run clean info screen
+# No IP is hardcoded here -- run tools/select-u64.sh <name> to pick a
+# device (see tools/u64-hosts.txt); it's remembered in $(STATE_FILE)
+# (gitignored) until you switch again. Override per-invocation with
+# ULTIMATE_HOST=<ip> without touching the saved selection.
+ifeq ($(origin ULTIMATE_HOST), undefined)
+ifneq (,$(wildcard $(STATE_FILE)))
+ULTIMATE_HOST := $(shell cat $(STATE_FILE))
+endif
+endif
+
+.PHONY: all run clean info screen host check-host
 
 all: $(PRG)
 
@@ -20,13 +29,25 @@ $(BUILD)/%.prg: src/%.c | $(BUILD)
 $(BUILD)/%.prg: src/%.s | $(BUILD)
 	$(CL65) -t $(TARGET) -C c64-asm.cfg -u __EXEHDR__ -o $@ $<
 
-run: $(PRG)
+check-host:
+	@if [ -z "$(ULTIMATE_HOST)" ]; then \
+		echo "No Ultimate64 selected. Run: tools/select-u64.sh <name>" >&2; \
+		echo "Known devices:" >&2; sed 's/^/  /' tools/u64-hosts.txt >&2; \
+		echo "(or pass ULTIMATE_HOST=<ip> for a one-off override)" >&2; \
+		exit 1; \
+	fi
+
+host:
+	@if [ -n "$(ULTIMATE_HOST)" ]; then echo "$(ULTIMATE_HOST)"; \
+	else echo "(none selected -- run tools/select-u64.sh <name>)"; fi
+
+run: $(PRG) check-host
 	$(RU64) $(ULTIMATE_HOST) run $(PRG)
 
-info:
+info: check-host
 	$(RU64) $(ULTIMATE_HOST) info
 
-screen:
+screen: check-host
 	python3 tools/screendump.py $(ULTIMATE_HOST)
 
 clean:
