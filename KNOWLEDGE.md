@@ -5,6 +5,26 @@ physical Ultimate64 over WiFi. Meant to outlive any single example in this
 repo — durable reference for future cc65/Ultimate64 projects, not just this
 one. Add to it whenever something non-obvious gets discovered again.
 
+For static hardware facts (memory map, KERNAL routines, register layouts,
+BASIC tokens, PETSCII/screen codes) rather than things we discovered the
+hard way, see **[C64-REFERENCE.md](C64-REFERENCE.md)**.
+
+## Contributing back from other projects
+
+If a future project elsewhere on this machine hits a cc65/ca65/ru64/
+Ultimate64/C64 quirk and works out the fix, write it back here — this repo
+is meant to accumulate that, not just be read from. But be selective:
+only append findings that are genuinely **reusable and non-obvious** (would
+save real time for a *different* project hitting the same thing), not
+every one-off specific to that project's own file layout or bug. Merge
+into the relevant existing section rather than appending to the end, and
+check whether something similar is already documented before adding a new
+entry — the goal is fast orientation for a new session, which an
+indiscriminate log of every side-step would defeat. If a section ever
+gets genuinely unwieldy, that's the signal to split it into its own file
+(the way C64-REFERENCE.md already got split out) — not something to
+pre-empt before it actually happens.
+
 ## Toolchain
 
 - **cc65**: `brew install cc65`. Gives `cl65` (driver), `cc65`, `ca65`,
