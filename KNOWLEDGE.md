@@ -30,18 +30,26 @@ one. Add to it whenever something non-obvious gets discovered again.
   convention as cc65's `-t c64` (see charset section below).
 
   **There is more than one `petcat` on this machine — use the VICE.app one
-  above, not `~/cbm/bin/petcat`.** The latter is a stale x86_64 binary
-  leftover from an old (2021) setup. Both happen to be
-  `com.apple.quarantine`-flagged (both downloaded via Chrome at some
-  point), but only `~/cbm/bin/petcat` can actually trigger Gatekeeper's
-  "cannot be opened, move to Trash" dialog if run directly — it's a raw
-  unsigned Mach-O executable. The VICE.app copy is a **shell script
-  wrapper** (`file` reports "Bourne-Again shell script"), and Gatekeeper's
-  app-execution gate doesn't apply to shell scripts the way it does to
-  binaries, so its quarantine flag is harmless. If `petcat` on `PATH`
-  ever throws that dialog, `PATH` resolved to the wrong copy — check
-  `which petcat` resolves under `/Applications/VICE-GTK3-*/bin`, not
-  `~/cbm/bin`.
+  above, not `~/cbm/bin/petcat`** (a stale, unrelated x86_64 binary
+  leftover from an old 2021 setup; ignore/avoid it, not needed for
+  anything here).
+
+  Both copies are `com.apple.quarantine`-flagged (downloaded via Chrome
+  at some point). **Any** quarantined executable — script or binary, this
+  isn't specific to Mach-O binaries — triggers Gatekeeper's "cannot be
+  opened, verify developer" dialog on its first execution ever; confirmed
+  first-hand, this fired even for the VICE.app shell-script wrapper the
+  first time it ran in this session. Once approved (clicking through the
+  dialog, or via System Settings > Privacy & Security), macOS remembers
+  that per-file and stays quiet on subsequent runs — the `xattr` flag can
+  remain present even after approval, so its mere presence isn't a
+  reliable signal of whether you'll be prompted again. To pre-empt the
+  prompt entirely (e.g. before a first run in a fresh session/script
+  context where no one's around to click through it):
+  ```
+  sudo xattr -d com.apple.quarantine /Applications/VICE-GTK3-<version>/bin/petcat
+  ```
+  (needs `sudo` — it's inside `/Applications`).
 
 ## Ultimate64 network control
 
