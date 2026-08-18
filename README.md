@@ -4,11 +4,21 @@ A minimal, direct pipeline for writing C/6502-asm/BASIC 2.0 code, compiling
 or tokenizing it, and beaming the result over WiFi to a real Ultimate64 for
 execution — no SD card shuffling, no cables.
 
-For accumulated gotchas, reference facts, and patterns (cc65 build configs,
-PETSCII/charset quirks, the IRQ-hooking pattern, WiFi streaming
-limitations, ...) — including things not specific to any one example here
-— see **[KNOWLEDGE.md](KNOWLEDGE.md)**. That file is meant to keep growing
-and to be useful to future cc65/Ultimate64 projects, not just this repo.
+This repo doubles as a reference base, meant to keep growing and to be
+useful to future cc65/Ultimate64 projects, not just this one:
+
+- **[KNOWLEDGE.md](KNOWLEDGE.md)** — gotchas/discoveries specific to
+  building this pipeline (cc65 build configs, PETSCII/charset quirks, the
+  IRQ-hooking pattern, WiFi streaming limitations, ...) and where future
+  projects should write their own findings back.
+- **[C64-REFERENCE.md](C64-REFERENCE.md)** — static C64 hardware facts:
+  memory map, KERNAL routines, VIC-II/SID/CIA registers, BASIC V2 tokens,
+  PETSCII/screen codes.
+- **[6502-OPCODES.md](6502-OPCODES.md)** — full 6502/6510 instruction set,
+  documented and undocumented/illegal opcodes.
+- **[CC65-TOOLCHAIN.md](CC65-TOOLCHAIN.md)** — ca65 assembler directives
+  and the cc65 C library (`conio.h`, `6502.h`, `c64.h`, ...) quick
+  reference.
 
 ## Toolchain
 
@@ -26,11 +36,14 @@ Both cc65/ru64 and VICE (for `petcat`) are already set up on this machine
 ## Layout
 
 ```
-src/            C/asm/BASIC sources
-build/          build output (.prg etc), gitignored
-tools/          helper scripts: screendump.py, select-u64.sh, u64-hosts.txt
-Makefile        build + deploy targets
-KNOWLEDGE.md    accumulated reference notes (see above)
+src/                C/asm/BASIC sources
+build/              build output (.prg etc), gitignored
+tools/              helper scripts: screendump.py, select-u64.sh, u64-hosts.txt
+Makefile            build + deploy targets
+KNOWLEDGE.md        accumulated gotchas/discoveries (see above)
+C64-REFERENCE.md    static C64 hardware reference (see above)
+6502-OPCODES.md     static 6502/6510 opcode reference (see above)
+CC65-TOOLCHAIN.md   ca65/cc65 syntax quick reference (see above)
 ```
 
 ## Picking which Ultimate64 to target

@@ -6,7 +6,9 @@ PETSCII/screen codes. This data doesn't change (the C64 is a fixed,
 behavior can. For things we discovered the hard way while building this
 repo's pipeline (cc65 configs, IRQ hooking pattern, WiFi limitations,
 toolchain gotchas), see **[KNOWLEDGE.md](KNOWLEDGE.md)** instead — this
-file is lookup tables, not a narrative.
+file is lookup tables, not a narrative. For the 6502/6510 instruction set,
+see **[6502-OPCODES.md](6502-OPCODES.md)**. For ca65/cc65 syntax, see
+**[CC65-TOOLCHAIN.md](CC65-TOOLCHAIN.md)**.
 
 ## Memory map
 
@@ -171,6 +173,55 @@ repo's hardware runs — see KNOWLEDGE.md).
 
 **Source**: [C64 Programmer's Reference Guide, User Callable KERNAL Routines](https://www.devili.iki.fi/Computers/Commodore/C64/Programmers_Reference/Chapter_5/page_272.html)
 
+### Standard file I/O sequence and device numbers
+
+Relevant once the `.d64` mounting TODO (see README.md) actually gets
+tackled — reading/writing a real file on a mounted disk, not just DMA-load
+of a `.prg`.
+
+**Device numbers**:
+
+| Number | Device |
+|---|---|
+| 0 | Keyboard |
+| 1 | Datasette |
+| 2 | RS-232 / modem |
+| 3 | Screen |
+| 4-5 | Printer |
+| 8-15 | Disk drives (IEC serial bus) |
+
+**Standard sequence** (register conventions verified against
+[sta.c64.org's KERNAL function reference](https://sta.c64.org/cbm64krnfunc.html)
+— note the widely-mirrored devili.iki.fi PRG transcription has the
+`SETLFS` example comments transposed, `A`/`X` swapped; sta.c64.org and
+general community consensus agree with the version below):
+
+1. **`SETNAM`** (`$FFBD`) — `A` = filename length, `X`/`Y` = pointer to
+   filename (low/high byte).
+2. **`SETLFS`** (`$FFBA`) — `A` = logical file number (1-127, your choice,
+   used as the handle for later calls), `X` = device number, `Y` =
+   secondary address.
+3. **`OPEN`** (`$FFC0`) — no register input; opens using the params set
+   above.
+4. **`CHKIN`** (`$FFC6`, to read) or **`CHKOUT`** (`$FFC9`, to write) —
+   `X` = logical file number from step 2, redirects KERNAL input/output to
+   that channel.
+5. Read/write via **`CHRIN`**/**`CHROUT`** in a loop, checking `STATUS`
+   (`$90`, via `READST` `$FFB7`) for end-of-file/error between calls.
+6. **`CLOSE`** (`$FFC3`) — `A` = logical file number to close.
+7. **`CLRCHN`** (`$FFCC`) — restore default input/output (keyboard/screen).
+
+**Secondary address meanings** (relevant to step 2, disk device):
+`0` = binary load, ignore file header, use `X`/`Y` from the `LOAD` call as
+the load address; `1` = binary save, or load using the address embedded
+in the file's own header (relocatable load); `2`-`14` = general-purpose
+sequential read/write channel numbers (your choice, used for bookkeeping
+if multiple files are open concurrently); `15` = command/control channel
+(disk commands like `S0:filename` to scratch, `I0` to initialize, reading
+the drive's error channel).
+
+**Sources**: [SETLFS/SETNAM/OPEN, sta.c64.org KERNAL reference](https://sta.c64.org/cbm64krnfunc.html); [Device number, C64-Wiki](https://www.c64-wiki.com/wiki/Device_number)
+
 ## VIC-II registers (`$D000`-`$D02E`)
 
 | Addr | Name | Purpose |
@@ -204,6 +255,30 @@ effects instead of "once per whatever generates the default IRQ" (CIA1
 timer, ~60 Hz).
 
 **Source**: [The MOS 6567/6569 video controller (VIC-II), zimmers.net](https://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt) (the widely-cited "VIC Article")
+
+### Raster/timing facts (PAL vs. NTSC)
+
+| Video standard | VIC-II chip | Cycles/line | Total lines/frame | Cycles/frame | Refresh rate |
+|---|---|---|---|---|---|
+| PAL | 6569 | 63 | 312 | 19,656 | ~50.125 Hz |
+| NTSC (older) | 6567R56A | 64 | 262 | 16,768 | ~60.05 Hz |
+| NTSC (newer) | 6567R8 | 65 | 263 | 17,095 | ~59.83 Hz |
+
+(Two different NTSC figures show up across sources because there were two
+VIC-II chip revisions with genuinely different timing — not a source
+disagreement.)
+
+**Bad lines**: every 8th raster line (start of a new character row), the
+VIC-II steals 40 extra cycles from the CPU to fetch a row of screen/color
+data, leaving only ~23 CPU cycles of that line free for computation
+instead of the usual ~63/65. This is *why* raster-timed effects (splits,
+sprite multiplexing) are hard to get exactly right — available CPU time
+per line isn't constant. `$D011` bit 3 (RST8, raster IRQ compare MSB) +
+`$D012` (raster compare low 8 bits) + `$D019`/`$D01A` (IRQ status/enable,
+above) is the standard way to trigger a raster IRQ instead of relying on
+the CIA1-timer-driven default IRQ our `irq_border.s` hooks.
+
+**Sources**: [raster time, C64-Wiki](https://www.c64-wiki.com/wiki/raster_time)
 
 ## SID registers (`$D400`-`$D41C`)
 

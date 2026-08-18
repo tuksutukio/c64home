@@ -7,7 +7,11 @@ one. Add to it whenever something non-obvious gets discovered again.
 
 For static hardware facts (memory map, KERNAL routines, register layouts,
 BASIC tokens, PETSCII/screen codes) rather than things we discovered the
-hard way, see **[C64-REFERENCE.md](C64-REFERENCE.md)**.
+hard way, see **[C64-REFERENCE.md](C64-REFERENCE.md)**. For the 6502/6510
+instruction set (documented + undocumented), see
+**[6502-OPCODES.md](6502-OPCODES.md)**. For ca65/cc65 syntax (assembler
+directives, C library functions), see
+**[CC65-TOOLCHAIN.md](CC65-TOOLCHAIN.md)**.
 
 ## Contributing back from other projects
 
