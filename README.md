@@ -93,3 +93,8 @@ different linker configs, and `src/irq_border.s` for an example. A
 
 Toolchain and network path are both verified working end to end for C,
 pure-assembly, and BASIC 2.0 programs, against real Ultimate64 hardware.
+
+## Next up
+
+- [ ] Test `.d64` disk image mounting (`ru64 mount`) — not tried yet, only
+  `.prg` DMA-load/run so far.
