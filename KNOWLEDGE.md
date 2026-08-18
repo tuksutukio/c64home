@@ -61,15 +61,32 @@ it into a reference doc other sessions will act on.
   default via this install path; both need adding to shell rc manually
   (no `~/.cargo/env` gets created the way official rustup-init would do
   it).
-- **All of these PATH additions live in `~/.zshrc`, which zsh only sources
-  for *interactive* shells.** A non-interactive invocation — a script, a
-  cron job, a coding agent's own shell tool — gets `command not found` for
-  `ru64`/`petcat`/`cl65` etc. even though they "just work" in a normal
-  terminal. Confirmed independently by a downstream project attempting to
-  drive this pipeline non-interactively. Either source `~/.zshrc`
-  explicitly first, or use absolute paths
-  (`~/.cargo/bin/ru64`, `/Applications/VICE-GTK3-<version>/bin/petcat`) in
-  anything that isn't an interactive shell.
+- **`ru64`/`petcat` PATH additions live in `~/.zshrc`, which zsh only
+  sources for *interactive* shells — but `cl65`/`ca65`/`ld65` are
+  unaffected by this**, and the distinction matters enough to get right:
+  - `cl65` comes from Homebrew, which registers `/opt/homebrew/bin`
+    system-wide via `/etc/paths.d/homebrew`. That gets picked up by
+    macOS's `path_helper`, invoked from `/etc/zprofile` — which zsh
+    sources for **login** shells, interactive or not. So `cl65` survives
+    in any login shell (a plain `zsh -lc '...'`, and many
+    script/CI/agent-harness invocation styles are login shells even
+    though non-interactive).
+  - `ru64` (`~/.cargo/bin`) and `petcat` (VICE app bundle path) are added
+    **only** in `~/.zshrc`, which requires **interactive** regardless of
+    login status — so they go missing in *any* non-interactive shell, a
+    much more commonly-hit gap than the `cl65` case. Confirmed
+    independently by a downstream project attempting to drive this
+    pipeline non-interactively (initially over-generalized to "cl65 too,"
+    which direct testing here didn't bear out — corrected).
+  - A shell that's **neither** login **nor** interactive (e.g. a bare
+    `zsh -c '...'` with no inherited environment) loses everything,
+    `cl65` included — worth knowing this case exists even though it's
+    rarer than the interactive-only gap above.
+
+  Either source `~/.zshrc` explicitly first, or use absolute paths
+  (`~/.cargo/bin/ru64`, `/Applications/VICE-GTK3-<version>/bin/petcat`) —
+  `cl65` typically doesn't need this treatment, but doesn't hurt to be
+  explicit if the invocation context is unknown.
 - **`petcat`** (BASIC tokenizer, for `.bas` → `.prg`): ships with
   [VICE](https://vice-emu.sourceforge.io/), not a separate package. On
   this machine it's a GUI app bundle, not a Homebrew install:
