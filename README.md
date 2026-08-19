@@ -124,3 +124,15 @@ pure-assembly, and BASIC 2.0 programs, against real Ultimate64 hardware.
 
 - [ ] Test `.d64` disk image mounting (`ru64 mount`) — not tried yet, only
   `.prg` DMA-load/run so far.
+- [ ] **Before anything here is aimed at the general public, review the
+  practices adopted during this casual/personal-exploration phase** —
+  they were fine for one person's own machine but weren't designed with
+  outside users in mind. Known candidates worth a look when that day
+  comes (not exhaustive, just what's obviously personal-machine-shaped
+  right now): hardcoded absolute paths (`VICE-GTK3-3.9` version pin,
+  `$HOME/.cargo/bin` assumptions) baked into the Makefile/tools rather
+  than discovered/configured; `tools/u64-hosts.txt` holding this
+  specific home network's device names/IPs; no LICENSE file; the
+  `findings-<unix-timestamp>.md` contribution mechanism was explicitly
+  designed for one person relaying between their own sessions, not
+  multiple external contributors, and would need rethinking.
