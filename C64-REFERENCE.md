@@ -256,6 +256,19 @@ timer, ~60 Hz).
 
 **Source**: [The MOS 6567/6569 video controller (VIC-II), zimmers.net](https://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt) (the widely-cited "VIC Article")
 
+### Sprite viewport-clamp coordinates (standard 40×25 unscrolled text mode)
+
+A sprite's `$D0nn` X/Y registers give its **top-left pixel** in raw VIC
+coordinate space (0-511 X via `$D010`'s MSB extension, 0-255 Y) — not
+screen-relative pixels. Visible display area in that raw space: **X
+24-344** (320px wide), **Y 50-250** (200px tall). For an unexpanded
+24×21px sprite to stay fully on-screen, clamp its position to **X in
+[24, 320]** (344-24), **Y in [50, 229]** (250-21). Confirmed against
+[C64-Wiki's Sprite article](https://www.c64-wiki.com/wiki/Sprite) and
+[Dustlayer's VIC-II sprite guide](https://dustlayer.com/vic-ii/2013/4/28/vic-ii-for-beginners-part-5-bringing-sprites-in-shape).
+Sprites aren't limited to the visible 320×200 area — the full 512×256
+coordinate space lets them move off-screen into the border and beyond.
+
 ### Raster/timing facts (PAL vs. NTSC)
 
 | Video standard | VIC-II chip | Cycles/line | Total lines/frame | Cycles/frame | Refresh rate |

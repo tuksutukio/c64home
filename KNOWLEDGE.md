@@ -254,6 +254,17 @@ General lesson: to observe live hardware state reliably over this WiFi
 pipeline, have the C64 program record it into RAM first; don't peek the
 volatile register directly.
 
+**Extension, for when you also can't operate the physical input device**
+(e.g. iterating from a machine that isn't at the C64): compile a second
+build where the input source is swapped at compile time (`#ifdef`/`-D`)
+for a small deterministic function that scripts a known sequence of
+inputs over time. Combined with an on-screen debug readout (as above),
+this reproduces and isolates an input/logic bug via `ru64 peek` alone —
+no human or physical hardware interaction needed — and cleanly separates
+"bug in the input-reading path" from "bug in the logic that consumes it."
+A downstream project (`cbm-joy`) used this to prove a CIA1 read path was
+fine and isolate a bug to acceleration math instead.
+
 ## cc65 build configs: C runtime vs pure assembly
 
 `cl65 -t c64` picks a *character set translation* (see below) but the
@@ -283,6 +294,77 @@ Trying to build a pure-asm `.s` file against the *default* `c64.cfg`
 produces linker errors like `Segment 'STARTUP' does not exist` and
 `Start address of memory area 'BSS' is not constant` — that's the tell
 that crt0 isn't linked in and you need `c64-asm.cfg` instead.
+
+### Custom linker configs for 64-byte-aligned data (e.g. sprites) need `fill = yes`, or the output file silently corrupts
+
+Sprite bitmap data must start on a 64-byte boundary (the sprite pointer
+at `$07F8`+ is a single byte = block address / 64). The clean way with
+cc65: extend the stock `c64.cfg` with a dedicated `MEMORY` area at a
+fixed, already-64-aligned address (e.g. `$2000`), and give the bitmap
+data its own segment (`align = $40`) loaded there. Cap the preceding
+area's declared `size` so it ends exactly where the new one begins (e.g.
+`size = $2000 - __HEADER_LAST__`), so `ld65` hard-errors on overlap
+instead of silently corrupting if the program ever grows too large.
+
+**The gotcha**: a `.prg` is just `[2-byte load address][bytes]`, written
+sequentially with no per-byte addressing. If the preceding area's
+*actual* content ends well before the next area's fixed start address,
+and that memory area doesn't have `fill = yes`, `ld65` does **not** pad
+the output file to bridge the gap — the link succeeds, the symbol table
+has the "correct" address for the aligned data, but the actual bytes land
+at the wrong file offset and thus the wrong memory address at runtime,
+while every reference to them still points at the *intended* address
+(which on real hardware contains unrelated leftover RAM). Symptom: the
+program runs fine, no crash, but whatever lives in the gapped area (e.g.
+a sprite) renders as garbage. Diagnosable via `ru64 peek` of actual vs.
+expected bytes, or by checking the `.prg` file size against the expected
+address span. **Fix**: add `fill = yes` to that `MEMORY` area (default
+fill byte `$00`; override with `fillval`). Confirmed via the official
+ld65 docs: `fill`/`fillval` exist exactly for this, and also apply to
+gaps left by `.align`/`.res`. Downstream project: `cbm-joy` (first mixed
+C/asm build in that project, added a joystick-driven sprite).
+
+**Related trap**: `ld65` config files (`.cfg`) use `#` for comments, not
+`;` — `;` is a *ca65 assembly-source* comment marker, and using it in a
+linker config produces an error like `Block identifier expected` rather
+than a helpful "wrong comment character" message. Easy to reach for `;`
+out of habit right after writing `.s` files.
+
+## cc65 (2.19) codegen bug: signed ternary fed straight into `+=` on an `int` struct field
+
+```c
+/* buggy */
+a->pos += pos_dir ? accel[a->hold] : -accel[a->hold];
+```
+
+where `accel[]` is `unsigned char[]` and `a->pos` is `int`. This can
+**silently produce wildly wrong results** — not a crash, not a compiler
+warning, just an incorrect number. Disassembly showed the negative
+branch correctly computes a full 16-bit two's-complement negation of the
+(zero-extended) `unsigned char` via cc65's `negax` runtime helper, but
+the subsequent `+=`-into-`pos` codegen only adds the negated value's
+*low* byte and unconditionally increments `pos`'s high byte on carry — a
+pattern that's only valid for the positive branch (where the implicit
+high byte genuinely is 0). Net effect: instead of decrementing, `pos`
+jumps by roughly +256 minus the intended step. Concretely: `pos=139`,
+`accel[hold]=1`, the "negative" branch produced `pos=394` instead of
+`138`.
+
+**Fix**: compute the signed delta into its own separate `int` local
+first, rather than feeding the ternary straight into `+=`:
+
+```c
+int delta = accel[a->hold];
+if (!pos_dir) delta = -delta;
+a->pos += delta;
+```
+
+This reliably produces correct code. Not yet root-caused further (unknown
+whether `-O` matters, or whether it's specific to a struct-field target
+vs. a plain local `int`) — worth avoiding on sight regardless: any
+`int_lvalue += cond ? unsigned_char_expr : -unsigned_char_expr` shape is
+a real cc65 2.19 pitfall, not a one-off. Found via `cbm-joy` (a
+joystick-driven sprite's acceleration math).
 
 ## PETSCII / charset gotchas
 
@@ -345,6 +427,25 @@ Verification technique used: after deploying and letting the program
 return to `READY.`, poll `$d020` a few times a second via `ru64 peek` —
 watching the value change on its own (with no program actively running)
 proves the hook is live and outlives the program that installed it.
+
+## Sprite-authoring workflow: text grid → ca65 bytes, pointer-swap for animation
+
+Hand-author sprite bitmaps as plain-text 24×21 grids (`.` = 0, `*` = 1,
+one file per sprite/frame) — easy to eyeball, diff, and version-control.
+Convert to ca65 `.byte` sprite data with a small script (bit 7 = leftmost
+pixel of each 8-px group, MSB-first packing — the universal C64 sprite
+byte convention). A same-shape "reversed" frame for e.g. a fire-button
+toggle is just `tr '.*' '*.'` on the source grid.
+
+At runtime, swap between two precomputed, 64-byte-aligned bitmap blocks
+by rewriting the one-byte sprite pointer (`$07F8`+ = block address / 64)
+rather than recomputing pixels — same zero-cost mechanism as
+animation-frame swapping generally (see the linker-config section above
+for getting sprite data 64-byte-aligned in the first place). Sprites have
+no equivalent of character mode's bit-7 reverse-video trick (that only
+works because the char ROM has separate pre-baked mirror glyphs) — for
+sprites, precomputed alternate bitmaps + pointer swap is the standard
+substitute. Downstream project: `cbm-joy`.
 
 ## Host selection convention (this repo)
 
