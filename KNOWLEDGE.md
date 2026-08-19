@@ -29,6 +29,30 @@ gets genuinely unwieldy, that's the signal to split it into its own file
 (the way C64-REFERENCE.md already got split out) — not something to
 pre-empt before it actually happens.
 
+### Mechanism: `findings-<unix-timestamp>.md`
+
+Stop-gap, manual, and deliberately low-infrastructure — a way to collect
+useful experience without building actual process for a personal-scale
+setup. If you're working in a sibling project and want to hand findings
+back: write them, raw and unfiltered, to a new file in *this* repo's root
+named `findings-<unix-timestamp>.md` (e.g. `findings-1787181006.md`),
+one file per drop. Include enough context to be useful standalone (source
+project name, what you were building, and ideally a rough steer on where
+each finding likely belongs — KNOWLEDGE.md vs. C64-REFERENCE.md vs.
+6502-OPCODES.md vs. CC65-TOOLCHAIN.md, and how confident/reusable each
+one seems) — the actual review and merge decision still happens on the
+receiving end, this just saves that session some triage.
+
+Whoever's next doing housekeeping on this repo (told explicitly to check
+— there's no automated trigger, by design, see the discussion this
+convention came out of) reads any `findings-*.md` present, sanitizes and
+merges what's genuinely reusable per the guidance above, and **deletes
+the file once its contents have been absorbed** (merged or deliberately
+discarded) — it's a staging area, not an archive; nothing should
+accumulate here long-term. The timestamp exists so multiple drops don't
+collide and so provenance/ordering is obvious at a glance, not for any
+deeper reason.
+
 ## Research process notes (writing/extending the reference docs)
 
 **WebFetch's page-summarization can silently drop or invert table rows on

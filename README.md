@@ -10,7 +10,9 @@ useful to future cc65/Ultimate64 projects, not just this one:
 - **[KNOWLEDGE.md](KNOWLEDGE.md)** — gotchas/discoveries specific to
   building this pipeline (cc65 build configs, PETSCII/charset quirks, the
   IRQ-hooking pattern, WiFi streaming limitations, ...) and where future
-  projects should write their own findings back.
+  projects should write their own findings back — either directly, or by
+  dropping a `findings-<unix-timestamp>.md` file here for later review
+  (see KNOWLEDGE.md's "Contributing back" section).
 - **[C64-REFERENCE.md](C64-REFERENCE.md)** — static C64 hardware facts:
   memory map, KERNAL routines, VIC-II/SID/CIA registers, BASIC V2 tokens,
   PETSCII/screen codes.
