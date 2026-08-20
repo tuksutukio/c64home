@@ -1,18 +1,15 @@
-# cc65 → Ultimate64 wireless dev pipe
+# c64home — C64/Ultimate64 wireless dev pipe
 
 A minimal, direct pipeline for writing C/6502-asm/BASIC 2.0 code, compiling
 or tokenizing it, and beaming the result over WiFi to a real Ultimate64 for
 execution — no SD card shuffling, no cables.
 
 This repo doubles as a reference base, meant to keep growing and to be
-useful to future cc65/Ultimate64 projects, not just this one:
+useful to future C64/Ultimate64 projects, not just this one:
 
 - **[KNOWLEDGE.md](KNOWLEDGE.md)** — gotchas/discoveries specific to
   building this pipeline (cc65 build configs, PETSCII/charset quirks, the
-  IRQ-hooking pattern, WiFi streaming limitations, ...) and where future
-  projects should write their own findings back — either directly, or by
-  dropping a `findings-<unix-timestamp>.md` file here for later review
-  (see KNOWLEDGE.md's "Contributing back" section).
+  IRQ-hooking pattern, WiFi streaming limitations, ...).
 - **[C64-REFERENCE.md](C64-REFERENCE.md)** — static C64 hardware facts:
   memory map, KERNAL routines, VIC-II/SID/CIA registers, BASIC V2 tokens,
   PETSCII/screen codes.
@@ -21,6 +18,54 @@ useful to future cc65/Ultimate64 projects, not just this one:
 - **[CC65-TOOLCHAIN.md](CC65-TOOLCHAIN.md)** — ca65 assembler directives
   and the cc65 C library (`conio.h`, `6502.h`, `c64.h`, ...) quick
   reference.
+- **[lib/](lib/README.md)** — reusable *code*, not just write-ups (LZSS
+  compression + 6502 decompressor, a fast block-copy routine, sprite
+  text-grid authoring, a double-buffering usage example) for projects to
+  actually pull in, not just read about.
+
+## Ground rules for sibling/sub-projects
+
+If you're a Claude session working in a *different* project and were
+pointed at this directory for general ground rules, read this first.
+
+**This repo is the single source of truth for the shared C64/Ultimate64
+toolchain, hardware reference, conventions, and reusable code — sibling
+projects should treat it as read-only.** Don't edit `README.md`,
+`KNOWLEDGE.md`, `C64-REFERENCE.md`, `6502-OPCODES.md`,
+`CC65-TOOLCHAIN.md`, `tools/`, `lib/`, or anything else defined in this
+repo directly, even if you're confident about a fix or addition —
+including from a session physically capable of doing so. (Copying
+`lib/`'s code *into your own project* to use it is exactly the point,
+of course — "read-only" means don't edit the copies living here, not
+"don't use them.") Housekeeping here is owned by whichever Claude session
+is working *in this repo itself*; everywhere else contributes through one
+channel only:
+
+**Write raw, unfiltered findings to a new `findings-<unix-timestamp>.md`
+file in this repo's root** (e.g. `findings-1787187937.md` — `date +%s`
+for the timestamp). Include source project name, context, and ideally a
+rough steer on where each finding likely belongs and how confident/
+reusable it seems — the actual review, sanitizing, and merge decision
+happens on this repo's side, that context just saves it some triage. See
+KNOWLEDGE.md's "Contributing back" → "Mechanism" section for the full
+convention (staging only, not an archive — the file gets deleted once
+its contents are reviewed and absorbed, merged or deliberately
+discarded).
+
+Device selection (`tools/select-u64.sh`, `tools/u64-hosts.txt`) works the
+same way: reference it by path from a sibling project's own Makefile
+rather than copying it — see KNOWLEDGE.md's "Using this from another
+project" section.
+
+**Be proactive about flagging reusable code, not just bugs/gotchas.** If
+something you built looks generic enough that a different project would
+plausibly want it too — not just "here's a fact we learned," but "here's
+a working piece of code" — say so explicitly in your findings report,
+with a pointer to the file(s), even without being asked. That's exactly
+what `lib/` (see above) is for, and it's expected to keep growing this
+way. You don't need to judge whether it's *definitely* reusable enough
+first — flag it and let the review on this side make that call, same as
+any other finding.
 
 ## Toolchain
 
@@ -41,6 +86,7 @@ Both cc65/ru64 and VICE (for `petcat`) are already set up on this machine
 src/                C/asm/BASIC sources
 build/              build output (.prg etc), gitignored
 tools/              helper scripts: screendump.py, select-u64.sh, u64-hosts.txt
+lib/                reusable code for projects to pull in (see above)
 Makefile            build + deploy targets
 KNOWLEDGE.md        accumulated gotchas/discoveries (see above)
 C64-REFERENCE.md    static C64 hardware reference (see above)
@@ -143,8 +189,8 @@ pure-assembly, and BASIC 2.0 programs, against real Ultimate64 hardware.
   embedded in a build, decompressed and redisplayed, verified
   byte-for-byte via peek. See KNOWLEDGE.md's LZSS and VIC-II
   double-buffering sections.
-- [ ] Make `petcat`/`ru64` easier to reach for future cc65-based
-  projects. Both currently only end up on `PATH` via `~/.zshrc`-sourced
+- [ ] Make `petcat`/`ru64` easier to reach for future projects built on
+  this pipeline. Both currently only end up on `PATH` via `~/.zshrc`-sourced
   shell config, or the `export PATH := ...` + trailing-`;`-per-recipe
   Makefile trick (see KNOWLEDGE.md's PATH section) — non-interactive
   shells and bare `make` don't pick either up automatically. Worth
@@ -153,3 +199,14 @@ pure-assembly, and BASIC 2.0 programs, against real Ultimate64 hardware.
   it so far. No fix decided yet (a wrapper script? documenting the PATH
   requirement more prominently up front? something else?) — flagging to
   think about, not acting on yet.
+- [x] ~~Archive reusable 6502/tooling code, not just its write-up.~~
+  **Done** — see [`lib/`](lib/README.md): LZSS compression + 6502
+  decompressor, fast fixed-1000-byte block copy, sprite text-grid
+  authoring, and a double-buffering usage example, all copied in from
+  `cbm-joy` and verified to still assemble/run correctly from their new
+  location. Turned out no generalization pass was needed first — the
+  code was already parameterized via C-facing globals for addresses, and
+  the "hardcoded" bits (blit's 1000-byte size, sprite2asm's 24×21
+  dimensions) are real, meaningful constants (a C64 screen/color-RAM
+  page; the actual VIC-II sprite size), not cbm-joy-specific values that
+  needed generalizing.

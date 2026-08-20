@@ -1,8 +1,8 @@
-# cc65 / Ultimate64 knowledge base
+# c64home knowledge base
 
 Accumulated facts, gotchas, and patterns from doing real 6502 dev against a
 physical Ultimate64 over WiFi. Meant to outlive any single example in this
-repo — durable reference for future cc65/Ultimate64 projects, not just this
+repo — durable reference for future C64/Ultimate64 projects, not just this
 one. Add to it whenever something non-obvious gets discovered again.
 
 For static hardware facts (memory map, KERNAL routines, register layouts,
@@ -39,9 +39,18 @@ named `findings-<unix-timestamp>.md` (e.g. `findings-1787181006.md`),
 one file per drop. Include enough context to be useful standalone (source
 project name, what you were building, and ideally a rough steer on where
 each finding likely belongs — KNOWLEDGE.md vs. C64-REFERENCE.md vs.
-6502-OPCODES.md vs. CC65-TOOLCHAIN.md, and how confident/reusable each
-one seems) — the actual review and merge decision still happens on the
-receiving end, this just saves that session some triage.
+6502-OPCODES.md vs. CC65-TOOLCHAIN.md vs. `lib/`, and how
+confident/reusable each one seems) — the actual review and merge
+decision still happens on the receiving end, this just saves that
+session some triage.
+
+**This includes proactively flagging actual reusable code, not just
+facts/gotchas** — a working routine or tool, not just a write-up about
+one (see `lib/`'s own README for what's landed there so far, and why:
+real effort that took real debugging isn't worth regenerating from
+scratch for every spin-off). Point at the file(s) in your own project
+rather than pasting the code inline; whoever reviews the finding reads
+it directly from there.
 
 Whoever's next doing housekeeping on this repo (told explicitly to check
 — there's no automated trigger, by design, see the discussion this
@@ -609,11 +618,11 @@ invocation without touching the saved selection.
 
 ### Using this from another project
 
-This repo (`~/src/cc65`) is meant to stay the single source of truth for
-the device list — new project directories elsewhere under `~/src/` should
-reference `~/src/cc65/tools/select-u64.sh` and `tools/u64-hosts.txt` by
-path rather than copying them, so there's one place to add a device or fix
-a bug. Each project's own `Makefile`/build layout will naturally be
+This repo (`~/src/c64home`) is meant to stay the single source of truth
+for the device list — new project directories elsewhere under `~/src/`
+should reference `~/src/c64home/tools/select-u64.sh` and
+`tools/u64-hosts.txt` by path rather than copying them, so there's one
+place to add a device or fix a bug. Each project's own `Makefile`/build layout will naturally be
 project-specific regardless, and can still read whatever `.ultimate_host`
 statefile it wants (own copy, or point at this repo's) — the two aren't
 coupled. If a project ever needs the selector itself to behave
