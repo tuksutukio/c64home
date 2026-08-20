@@ -234,7 +234,7 @@ the drive's error channel).
 | `$D015` | SPENA | Sprite enable flags (M0E-M7E) |
 | `$D016` | CTRL2 | Control register 2: RES, MCM (multicolor), CSEL, XSCROLL |
 | `$D017` | SPYEX | Sprite Y-expansion flags |
-| `$D018` | MEMPTR | Screen/character memory pointers (VM13-VM10, CB13-CB11) |
+| `$D018` | MEMPTR | Screen/character memory pointers: bits 7-4 = VM13-VM10 (screen/video-matrix base, unit `$400`), bits 3-1 = CB13-CB11 (character-set base, unit `$800`), bit 0 unused (KERNAL sets it to 1). Worked example: screen at `$0400` (VM=1), charset at `$1000` (CB=2, default ROM image) → `VM<<4 OR CB<<1 OR 1 = $15`; a second screen at `$2400` (VM=9), same charset → `$95`. See KNOWLEDGE.md for the double-buffering technique this enables. |
 | **`$D019`** | **IRQREG** | **Interrupt status: which VIC IRQ source fired** (IRQ, ILP, IMMC, IMBC, IRST) — write 1 to acknowledge |
 | `$D01A` | IRQENA | Interrupt enable: which VIC sources can raise IRQ |
 | `$D01B` | SPPRIOR | Sprite/background display priority per sprite |

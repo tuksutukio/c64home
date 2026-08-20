@@ -152,6 +152,56 @@ Field names (from the real headers, not guessed):
 
 Also in `c64.h`: `COLOR_*` constants (`COLOR_BLACK` `0x00` through `COLOR_GRAY3` `0x0F`, matching the palette order in C64-REFERENCE.md), `CH_F1`-`CH_F8` (function-key char codes), `JOY_*_MASK` bits for `joy_read()`, `COLOR_RAM` (`$D800` as `unsigned char*`), and `get_ostype()` (detect KERNAL ROM revision — e.g. would return a real value even under JiffyDOS, since JiffyDOS preserves standard entry points; untested by us specifically though).
 
+## Common pitfalls
+
+### Branch range errors report as a linker error, not an assembler one
+
+`BEQ`/`BNE`/etc. are relative branches, range -128..+127 from the byte
+after the instruction (see 6502-OPCODES.md). A branch whose target is
+further away — easy to hit once a routine has more than a handful of
+branches/loops — fails with `ld65: Error: Range error (N not in
+[-128..127])`. That reads like a *linker* complaint (`ld65`, not `ca65`,
+in the message) but it's actually ca65 catching an out-of-range branch at
+assemble time; the error just surfaces at link time because that's when
+the final relative offset is known. Fix: invert the condition and `jmp`
+to an unconditional target instead:
+```asm
+bne not_done
+jmp done
+not_done:
+```
+The error message doesn't say *which* branch in a large file, so this is
+worth recognizing on sight rather than hunting for it after the fact.
+
+### The C runtime's zero page has zero bytes free — reuse `ptr1`-`ptr4`, don't declare new `(zp),y` pointers
+
+The stock `c64.cfg`'s `ZP` memory area is exactly 26 bytes (`zpspace` in
+`asminc/zeropage.inc`, confirmed against the real cc65 source — `ZP: ...
+size = $001A` in `cfg/c64.cfg` matches exactly), and the C runtime's own
+reservations (`sp`/`c_sp`, `sreg`, `regsave`, `ptr1`-`ptr4`, `tmp1`-`tmp4`,
+`regbank`) already claim all of it. Any hand-written asm routine that
+declares its *own* new zero-page variables for `(zp),y` addressing
+overflows the `ZP` memory area (`ld65: Warning: Segment 'ZEROPAGE'
+overflows memory area 'ZP' by N bytes`, then a hard error).
+
+**Don't fix this by expanding `ZP`'s declared size** — the bytes just
+past cc65's own allocation are live BASIC-interpreter zero page in active
+use whenever a program runs via the normal `SYS` stub (e.g. `$002B`
+onward is `TXTTAB`, see C64-REFERENCE.md).
+
+**Fix**: `.include "zeropage.inc"` and reuse cc65's own general-purpose
+scratch pointers (`ptr1`-`ptr4`) instead of declaring new ones — zero
+additional zero-page cost, since they're already counted in the existing
+26 bytes. Pattern for exposing a C-callable interface without fighting
+cc65's stack-based calling convention: give the C side plain
+(non-zeropage) `extern unsigned int` globals for the routine's
+"arguments", and copy them into `ptr1`/`ptr2`/etc. once at the top of the
+asm routine for all the actual `(zp),y` work internally — C can set a
+zero-page-*destined* value via an ordinary absolute-addressed global
+fine (the CPU doesn't care the target address happens to be page zero);
+only the asm routine's *internal* addressing needs true zero-page
+residency to be legal at all.
+
 ## See also
 
 6502/6510 opcode reference (documented + undocumented/illegal, including

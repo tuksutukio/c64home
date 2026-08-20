@@ -145,6 +145,24 @@ it into a reference doc other sessions will act on.
   lowercase-source→uppercase-screen PETSCII conversion automatically, same
   convention as cc65's `-t c64` (see charset section below).
 
+  **`petcat` is also useful the other direction — decoding a screen-RAM
+  dump into readable text**, not just tokenizing/detokenizing BASIC:
+  `petcat -text -2 -nc` renders a **screen-code** dump as text, but only
+  after converting screen codes to PETSCII first, using the table in
+  C64-REFERENCE.md's "PETSCII vs. screen codes" section (feeding raw
+  screen-RAM bytes to petcat directly produces garbage — it expects
+  PETSCII, not screen codes). Practical recipe: mask off the
+  reverse-video bit (bit 7 — same glyph, just inverted color) before
+  conversion; the unambiguous screen-code range (`$00`-`$3F`, covering
+  letters/digits/space/punctuation) converts exactly via the documented
+  table; the ambiguous range (`$40`+, graphics-vs-lowercase depending on
+  which charset ROM image is active, unknowable from the dump alone) is
+  safe to placeholder out for a "does this scene contain readable text"
+  check, since real letters/words only ever show up in the unambiguous
+  range anyway. This is how a message typed into a mostly-graphical test
+  scene got found and read back after the fact, over WiFi, with no video
+  streaming involved. (Downstream: `cbm-joy`.)
+
   **There is more than one `petcat` on this machine — use the VICE.app one
   above, not `~/cbm/bin/petcat`** (a stale, unrelated x86_64 binary
   leftover from an old 2021 setup; ignore/avoid it, not needed for
@@ -408,6 +426,16 @@ joystick-driven sprite's acceleration math).
   the `$40`-`$5F` screen-code range (graphics vs. lowercase glyphs) — it
   does *not* affect how letters (screen codes 1-26) render, since those
   render as uppercase in either mode.
+- **The actual fix when a C program needs the uppercase+graphics charset
+  back** (crt0 having already switched to lowercase before `main()`
+  runs): send PETSCII `$8E` ("switch to uppercase+graphics") back via the
+  KERNAL's own `CHROUT`, using cc65's `<cbm.h>` wrapper —
+  `cbm_k_bsout(0x8E);`. Confirmed via `ru64 peek` that this correctly
+  flips `$D018`'s CB bits back to the uppercase/graphics ROM image
+  (`$15` vs. lowercase's `$16`, same VM — see C64-REFERENCE.md's `$D018`
+  entry). Prefer this KERNAL-call wrapper over poking `$D018`'s CB bits
+  directly, to stay on the well-tested official path rather than
+  re-deriving the exact bit pattern by hand. (Downstream: `cbm-joy`.)
 
 ## IRQ hooking pattern (well-behaved, chains to KERNAL)
 
@@ -470,6 +498,104 @@ no equivalent of character mode's bit-7 reverse-video trick (that only
 works because the char ROM has separate pre-baked mirror glyphs) — for
 sprites, precomputed alternate bitmaps + pointer swap is the standard
 substitute. Downstream project: `cbm-joy`.
+
+## LZSS compression for C64 assets, with a working 6502 decompressor
+
+Closes the "design a screen live on hardware, read it back, compress it"
+idea noted in README.md's "Next up" (commit `d680663`) — done and working
+end to end on real hardware by `cbm-joy`: screen hand-drawn on
+`u64elite`'s keyboard, peeked back over WiFi, compressed, embedded in a
+build, decompressed and redisplayed, verified byte-for-byte via `ru64
+peek`.
+
+**Format**: for C64 assets (screen/color RAM dumps, ~1000 bytes each,
+heavy on repeated runs), a byte-oriented LZSS variant strikes the right
+balance — cheap to decode on 6502 (no bit-level match/offset packing,
+just a per-token flag bit) while still compressing character-graphics
+screens to roughly 15-35% of raw size and near-solid color RAM to ~3%.
+`[2-byte LE uncompressed length][token groups]`. Each group = 1 control
+byte (8 flag bits, LSB-first) + up to 8 tokens. Flag bit `1` = 1 literal
+byte follows. Flag bit `0` = a 2-byte match follows: `[offset][length]`,
+distance = `offset+1` (1-256, fits the whole window in one byte), length
+= the `length` byte directly (2-255). Decompression stops once the
+length-prefixed byte count is produced (trailing unused flag bits in the
+final control byte are simply never read). Compression cost doesn't
+matter (runs once, on the dev machine) — a brute-force longest-match
+search over the whole 256-byte window is fine for ~1-2KB assets.
+Reference implementation with round-trip self-verification:
+`cbm-joy/tools/lzss.py` (also emits ca65 `.byte` lines via `--asm
+<label>`).
+
+**6502 decompressor gotcha — overlapping matches need a *forward* copy
+loop**: the natural/fast 6502 idiom for copying N bytes is a backward
+countdown (`ldy #N-1` / `dey` / `bpl`), since it avoids a separate
+counter compare. This is **wrong** for LZ-style matches where distance <
+length (e.g. distance=1, length=200 for "repeat the last byte 200
+times") — each newly-written destination byte is itself a valid source
+for a later byte in the *same* copy, and only forward order (low index
+to high) produces that correctly; backward order reads still-
+uninitialized destination bytes and corrupts the output. Long same-byte
+runs are exactly the common case for screen/color RAM (background-color
+or blank-cell regions), so this isn't an edge case to skip — it's hit
+immediately on real data. Correct shape: `ldy #0` / `lda (src),y` / `sta
+(dst),y` / `iny` / `cpy length` / `bne loop`, then a single 16-bit
+pointer/remaining-count adjustment by the full match length afterward
+(not per-byte), to keep the common case fast despite the per-byte
+compare.
+
+## VIC-II screen-pointer double buffering: instant, tear-free screen swaps (character grid only — color RAM has no equivalent)
+
+Decompressing straight into the live `$0400`/`$D800` causes visible
+tearing (VIC-II is scanning it out while the CPU is mid-write); even a
+raw block-move-to-live-memory approach (see the fast-copy technique
+below) is faster than decompressing live but still can't outrun the
+raster beam for a full ~1000-byte screen, so it still tears slightly.
+
+**Full fix for the character grid** (not color): `$D018`'s upper bits
+pick which of several possible screen-matrix locations the VIC treats as
+"live" (see C64-REFERENCE.md's `$D018` entry for the exact bit layout
+and worked examples). Decompress the *next* screen into a second,
+currently-inactive valid screen location, then swap which one is
+displayed with a single `$D018` write — genuinely instant, nothing for
+the raster beam to catch mid-update.
+
+- **Avoid bank-relative `$1000`-`$1FFF` for screen-matrix placement**
+  when the VIC is in bank 0 or bank 2 — that range shows the built-in
+  character-generator ROM to the VIC regardless of underlying RAM
+  content on real hardware (a well-known VIC-II quirk). Not yet confirmed
+  whether the shadow applies per access-type (only CB-selected character
+  fetches) or per raw address range (any VIC access, including
+  VM-selected screen-matrix fetches) — `cbm-joy` didn't need to resolve
+  that ambiguity, just picked a screen location outside the range
+  entirely (`$2400`). Worth pinning down precisely if this becomes a
+  recurring technique.
+- 16 possible `$D018` screen locations exist per 16KB VIC bank (`$0000`,
+  `$0400`, ... `$3C00`, each `$400` apart); minus the 4 in the char-ROM
+  shadow range, minus whatever the program's own code/data/sprites
+  occupy, there's comfortably room for several simultaneous screen
+  buffers in one bank (e.g. pre-staging all 4 directional-neighbor
+  screens for a non-scrolling 2D game — an idea worth revisiting, not yet
+  built).
+- **Color RAM has no equivalent double-buffer in hardware** — it's a
+  single physical 1000-nibble SRAM chip, always at `$D800`, no bank/
+  pointer to flip. Any actual color change on screen-swap still needs a
+  real copy, no matter how many screen-matrix buffers are pre-staged —
+  the one part of a screen transition that can still show minor tearing.
+
+Downstream project: `cbm-joy`.
+
+### Fast fixed-size 6502 block copy (e.g. the color-RAM blit above, or any known-size buffer-to-buffer move)
+
+Standard shape for copying N bytes where N > 255: Y-register
+page-wraparound addressing (`ldy #0` / `lda (ptr1),y` / `sta (ptr2),y` /
+`iny` / `bne loop`) so only the pointers' *high* bytes need incrementing
+— once per 256 bytes — rather than a 16-bit increment-with-carry-branch
+on every single byte. For a fixed 1000-byte copy: 3 full 256-byte pages
+via that loop, then a final 232-byte tail with a plain `cpy #232` bound.
+Wrapping the actual live-memory copy in `SEI`/`CLI` (cc65: `<6502.h>`'s
+`SEI()`/`CLI()` macros, see CC65-TOOLCHAIN.md) keeps its duration
+deterministic by preventing the KERNAL's ~60Hz IRQ (keyboard scan etc.)
+from stretching it out mid-copy with unrelated work.
 
 ## Host selection convention (this repo)
 

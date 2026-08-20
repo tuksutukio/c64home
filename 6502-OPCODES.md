@@ -28,7 +28,13 @@ isn't an instruction-set change at all. Everything below applies to both.
 | ind | Indirect (JMP only) | `JMP ($1000)` |
 | (ind,X) | Indexed indirect | `LDA ($10,X)` |
 | (ind),Y | Indirect indexed | `LDA ($10),Y` |
-| rel | Relative (branches) | `BEQ label` |
+| rel | Relative (branches, -128..+127 from the byte *after* the branch instruction) | `BEQ label` |
+
+**Branch range is a real constraint in practice, not just a footnote**:
+a branch to a target more than ~127 bytes away fails to assemble under
+ca65 (see CC65-TOOLCHAIN.md for the exact error and the invert-and-`jmp`
+fix) — easy to hit once a routine has more than a handful of
+branches/loops, not just a toy-program edge case.
 
 Flags column order throughout: **N Z C I D V**. `+` = affected/set per
 result, `-` = unaffected, `0`/`1` = unconditionally cleared/set,

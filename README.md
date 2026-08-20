@@ -136,15 +136,20 @@ pure-assembly, and BASIC 2.0 programs, against real Ultimate64 hardware.
   `findings-<unix-timestamp>.md` contribution mechanism was explicitly
   designed for one person relaying between their own sessions, not
   multiple external contributors, and would need rethinking.
-- [ ] **Idea, not started yet**: design whole character-graphics screens
-  live *on the actual hardware* (interactively, however that ends up
-  working — the point is the C64 itself is the canvas), then read the
-  result back over WiFi (`ru64 peek` on screen RAM + color RAM — same
-  mechanism `tools/screendump.py` already uses, just for graphics instead
-  of text) and compress it into something with a matching decompressor,
-  for redisplay later. Complementary to — not the same as — the
-  text-grid-to-ca65-bytes sprite workflow in KNOWLEDGE.md (that's
-  hand-authored source; this is *capturing* something built live on
-  hardware). Likely relevant to `cbm-joy` first (where the charset/sprite
-  work is currently happening) but general enough it could end up living
-  here instead if it's reusable across whatever side-projects follow.
+- [x] ~~Design whole character-graphics screens live on the actual
+  hardware, read back over WiFi, compress for redisplay.~~ **Done** —
+  built and verified end to end by `cbm-joy`: screen hand-drawn on
+  `u64elite`'s keyboard, peeked back, compressed (byte-oriented LZSS),
+  embedded in a build, decompressed and redisplayed, verified
+  byte-for-byte via peek. See KNOWLEDGE.md's LZSS and VIC-II
+  double-buffering sections.
+- [ ] Make `petcat`/`ru64` easier to reach for future cc65-based
+  projects. Both currently only end up on `PATH` via `~/.zshrc`-sourced
+  shell config, or the `export PATH := ...` + trailing-`;`-per-recipe
+  Makefile trick (see KNOWLEDGE.md's PATH section) — non-interactive
+  shells and bare `make` don't pick either up automatically. Worth
+  fixing for discoverability since `petcat`'s real purpose is general
+  PETSCII/ASCII text interop, not just this repo's BASIC-listing use of
+  it so far. No fix decided yet (a wrapper script? documenting the PATH
+  requirement more prominently up front? something else?) — flagging to
+  think about, not acting on yet.
