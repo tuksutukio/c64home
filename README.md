@@ -64,7 +64,8 @@ same way: reference it by path from a sibling project's own Makefile
 rather than copying it — see KNOWLEDGE.md's "Using this from another
 project" section.
 
-**Be proactive about flagging reusable code, not just bugs/gotchas.** If
+**Be proactive about flagging reusable code, not just bugs/gotchas** (except
+from trial projects; see KNOWLEDGE.md's "What not to send"). If
 something you built looks generic enough that a different project would
 plausibly want it too — not just "here's a fact we learned," but "here's
 a working piece of code" — say so explicitly in your findings report,

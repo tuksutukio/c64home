@@ -33,4 +33,8 @@ Start with `c64home/README.md` (what c64home is, ground rules for sibling projec
   projects.** Use its tools by relative path (e.g. `../c64home/tools/select-u64.sh`), copy `lib/`
   code into your own project, and send reusable findings back as a new
   `c64home/findings-<unix-timestamp>.md` (see c64home's README, "Ground rules for sibling/sub-projects").
-- New Commodore projects go in a new folder here, referencing siblings by relative path.
+- Before writing a findings file, grep c64home's docs for each item and leave out what's already
+  there. Details are under "What not to send" in `c64home/KNOWLEDGE.md`.
+- New Commodore projects go in a new folder here, referencing siblings by relative path. A project
+  whose README or first prompt calls it a **trial** is a throwaway test: its findings are welcome,
+  but its code isn't a `lib/` candidate.
