@@ -323,19 +323,22 @@ Christian Bauer). The refresh rates follow from those and the system clock
 
 ### Note frequencies
 
-The 16-bit frequency register is linear in pitch: `Fout = Fn × Fclk / 16777216` Hz
-(2^24), so `Fn = Hz × 16777216 / Fclk`. The system clock is **985248 Hz on PAL** and
-1022727 Hz on NTSC. That gives about 0.05873 Hz per step on PAL and 0.06097 on NTSC.
+The 16-bit frequency register is linear in frequency (not pitch): `Fout = Fn × Fclk /
+16777216` Hz (2^24), so `Fn = Hz × 16777216 / Fclk`. The system clock is the crystal
+divided down: **985248 Hz on PAL** (17.734472 MHz / 18) and 1022727 Hz on NTSC
+(14.31818 MHz / 14). That gives about 0.05873 Hz per step on PAL and 0.06097 on NTSC.
 Example: PAL A4 (440 Hz) = 7493 = `$1D45`. The PAL note table in the User's Guide
 agrees with a computed equal-temperament table to within 1 (its values look truncated
 rather than rounded). Tables are PAL- or NTSC-specific; a PAL table on NTSC plays about
 4% sharp.
 
-**Sources**: formula in c64doc `c64-butterfield-ml-revised` p.358 (PDF) and
-`c128-programmers-reference-guide` p.369 (PDF); clocks in
-`c128-programmers-reference-guide` p.394 (PDF); PAL note table in
+**Sources** (all c64doc): formula in `c64-programmers-reference-guide` p.481 (PDF).
+Crystals in `c64-service-manual-1985` p.23 (PDF, schematic: 17.734472 MHz PAL,
+14.31818 MHz NTSC); the dividers 18 and 14 and the resulting clocks in `chacking-09`,
+trivia answers $097/$098. Commodore's own figure 0.985248E6 for PAL is in
+`c128-programmers-reference-guide` p.394 (PDF). PAL note table in
 `c64-users-guide-remake` p.170-171 (PDF). Mapping the 64 rounds the clocks to
-985250 / 1022730.
+985250 / 1022730; ignore that.
 
 ### ADSR timings
 
