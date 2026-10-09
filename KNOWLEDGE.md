@@ -625,8 +625,6 @@ sprites are on, `poke 53269,0` before printing so none covers the result.
   memory (2 bytes per element instead of 5).
 - **Variables are found by linear search in creation order**, so create
   the ones used in hot loops first.
-- **GOTO/THEN targets are stored as ASCII digits** and parsed at run time,
-  so short line numbers save a little (not measured or sourced yet).
 
 Source for the integer and search-order points: c64doc
 `c64-mapping-the-64-html`, the variable-storage text under `$2D`/`$2E`
