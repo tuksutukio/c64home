@@ -618,10 +618,10 @@ invocation without touching the saved selection.
 
 ### Using this from another project
 
-This repo (`~/src/c64home`) is meant to stay the single source of truth
-for the device list — new project directories elsewhere under `~/src/`
-should reference `~/src/c64home/tools/select-u64.sh` and
-`tools/u64-hosts.txt` by path rather than copying them, so there's one
+This repo (`~/src/cbm/c64home`) is meant to stay the single source of truth
+for the device list — sibling projects under `~/src/cbm/` should
+reference `../c64home/tools/select-u64.sh` and
+`tools/u64-hosts.txt` by relative path rather than copying them, so there's one
 place to add a device or fix a bug. Each project's own `Makefile`/build layout will naturally be
 project-specific regardless, and can still read whatever `.ultimate_host`
 statefile it wants (own copy, or point at this repo's) — the two aren't
