@@ -22,6 +22,13 @@ useful to future C64/Ultimate64 projects, not just this one:
   compression + 6502 decompressor, a fast block-copy routine, sprite
   text-grid authoring, a double-buffering usage example) for projects to
   actually pull in, not just read about.
+- **[../c64doc](../c64doc/CLAUDE.md)**: separate repo, Antti's offline
+  library of ~250 Commodore books/manuals/service docs (Programmer's
+  Reference Guides, Mapping the 64, KERNAL/ROM disassemblies, 1541/DOS
+  internals, Ultimate docs, schematics) with full-text search. Use it to
+  verify or go beyond what's in the files above. Cite sources as
+  `<doc-id> p.<PDF page>`. Only the catalog is in git, so on a machine
+  without the offline copy you can see what exists but can't search it.
 
 ## Ground rules for sibling/sub-projects
 

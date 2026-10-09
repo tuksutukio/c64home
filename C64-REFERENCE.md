@@ -8,7 +8,11 @@ repo's pipeline (cc65 configs, IRQ hooking pattern, WiFi limitations,
 toolchain gotchas), see **[KNOWLEDGE.md](KNOWLEDGE.md)** instead — this
 file is lookup tables, not a narrative. For the 6502/6510 instruction set,
 see **[6502-OPCODES.md](6502-OPCODES.md)**. For ca65/cc65 syntax, see
-**[CC65-TOOLCHAIN.md](CC65-TOOLCHAIN.md)**.
+**[CC65-TOOLCHAIN.md](CC65-TOOLCHAIN.md)**. For anything not covered here,
+or to check a value against the original sources, search the document
+library in **[../c64doc](../c64doc/CLAUDE.md)** (e.g.
+`c64-compute-mapping-the-64-and-64c`, `c64-programmers-reference-guide-txt`).
+When adding a fact here from it, cite the doc id and PDF page.
 
 ## Memory map
 
