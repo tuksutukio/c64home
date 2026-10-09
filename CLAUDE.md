@@ -4,9 +4,9 @@ This file is c64home's own `CLAUDE.md`, and `~/src/cbm/CLAUDE.md` is a symlink t
 in `~/src/cbm/` to work across all the Commodore projects, or in one project's folder to focus on it.
 Either way this file loads. Paths here are relative to `~/src/cbm/`.
 
-`~/src/cbm/` is its own tiny repo (`tuksutukio/cbm`) that tracks only the `CLAUDE.md` symlink;
-its `.gitignore` excludes everything else. Each project below is its own repo with its own GitHub
-remote, except cbm-joy, which is deliberately local-only. Projects refer to each other by **relative path** (`../c64home`,
+`~/src/cbm/` itself is not a git repo; it holds only the `CLAUDE.md` symlink and the project
+folders. Each project below is its own repo with its own GitHub remote, except cbm-joy, which is
+deliberately local-only. Projects refer to each other by **relative path** (`../c64home`,
 `../c64doc`), never by absolute path, so the whole tree can move as one unit. Unrelated projects stay
 directly under `~/src/`.
 
