@@ -220,6 +220,16 @@ it into a reference doc other sessions will act on.
   fine. `spctl` reporting "rejected" alone is not, by itself, a sign
   something will fail to execute — only `com.apple.quarantine` being
   present is.
+- **VICE (`x64sc`) as a quick check without hardware**:
+  ```
+  x64sc -default -warp -sounddev dummy -limitcycles <N> \
+        -exitscreenshot out.png -autostartprgmode 1 -autostart prog.prg
+  ```
+  runs a PRG for N emulated cycles and saves a 384×272 PNG, in about a
+  second of wall time. Two runs with different N show motion and direction.
+  `-default` ignores saved VICE settings, so this is a stock C64, unlike the
+  Ultimates (see "The ROMs are not stock"). **The GTK build still opens a
+  window while it runs**, on Antti's desktop, so say so before using it.
 
 ## Ultimate64 network control
 
@@ -237,6 +247,30 @@ it into a reference doc other sessions will act on.
 - `ru64 --help` lists more (`reboot`, `poweroff`, `pause`/`resume`, `play`
   for SID/MOD files, …). They're known and deliberately not documented here
   until a project actually needs one; no need to report them as findings.
+- **Reading the Ultimate's configuration** (not in `ru64`): `curl
+  http://<host>/v1/configs` lists the config categories, and `curl
+  "http://<host>/v1/configs/<category>"` (URL-encode spaces) returns one as
+  JSON. `C64 and Cartridge Settings` names the active `Kernal ROM`, `Basic
+  ROM` and `Char ROM`, the cartridge and the REU settings. Read-only use is
+  harmless.
+- **Files over FTP** (not in `ru64`): the Ultimate runs an anonymous FTP
+  server. `ftp://<host>/` has `SD`, `Flash`, `Temp` and `USB1`; ROM images
+  are in `/Flash/roms/` (`curl ftp://<host>/Flash/roms/<name>`). Confirmed
+  on `u64elite`, not yet tried on `u64c`.
+
+### The ROMs are not stock, and can change without notice
+
+Antti, 2026-10-10: both Ultimates may run custom KERNAL, BASIC and
+character ROMs, and he may swap them at any time. **Don't record specific
+ROM files, prompts, messages or glyphs as facts about this environment.**
+When it matters, read the live configuration (above).
+- Don't key automation on stock screen text. For example, the BASIC prompt
+  may not be `READY.` (in one session it was `OK.`, and a break printed
+  `STOP IN` instead of `BREAK IN`).
+- Glyph shapes depend on whatever char ROM is configured right then.
+- Standard KERNAL entry points (`$FFD2`, `$EA31` chaining) have worked
+  with every ROM seen so far, but with swappable ROMs that's an
+  observation, not a guarantee.
 
 ### Video/audio streaming is Ethernet-only — screenshot doesn't work over WiFi
 
@@ -271,6 +305,19 @@ decodes screen codes to ASCII:
 This is good enough to verify a program's text output end-to-end over
 WiFi without ever needing a cable.
 
+**A full static frame is possible too.** Peek the VIC registers
+(`$D000`-`$D02E`), `$DD00` (VIC bank), screen RAM (including the sprite
+pointers), colour RAM, the bitmap or charset and the sprite blocks, and
+draw the frame locally. The trial project `france` did this in
+`france/tools/u64shot.py` (all text and bitmap modes, sprites with
+priorities, about 0.4 s per frame), confirmed against a running program on
+`u64elite`. Limits: it can't see mid-frame raster tricks, and because the
+peeks aren't synchronised with the 6502, a fast-changing scene can mix two
+frames. When the charset is the character ROM, fetch the ROM configured
+right now (see "The ROMs are not stock" above), never a cached copy. The
+tool is trial code and isn't adopted here. The Ethernet video stream is
+still to be tried, so this may become moot.
+
 ### Interactive testing over WiFi *is* possible — don't over-read the streaming limitation above
 
 The video/audio streaming restriction above is specifically about the VIC
@@ -287,6 +334,11 @@ running program, read the result back via screen-RAM peek).
 Usage note: send Enter as a literal `\n`, not `\r` — e.g.
 `ru64 <host> type $'\n'` in bash. `\r` was tested and did not reliably
 trigger the same behavior.
+
+**Open question, untested**: `ru64 type` most likely fills the KERNAL
+keyboard buffer. If so, a program that reads the keyboard matrix itself
+(`$DC00`/`$DC01`, especially with IRQs off) will never see the typed keys.
+Test with such a program before relying on `type` for it.
 
 **Narrower gotcha, low recurrence**: if the receiving program reads input
 via a raw KERNAL `CHRIN` loop in pure assembly (as opposed to BASIC's
@@ -397,6 +449,12 @@ linker config produces an error like `Block identifier expected` rather
 than a helpful "wrong comment character" message. Easy to reach for `;`
 out of habit right after writing `.s` files.
 
+**Config-free alternative for up to three sprite shapes**: copy the 63
+bytes at startup to block 13, 14 or 15 (`$0340`, `$0380`, `$03C0`), which
+sit inside the tape buffer (`$033C`-`$03FB`, free if tape is unused, see
+C64-REFERENCE.md), and point the sprites at 13..15. Works with the stock
+`c64-asm.cfg` and `c64.cfg`. Confirmed on hardware from asm and C.
+
 ## cc65 (2.19) codegen bug: signed ternary fed straight into `+=` on an `int` struct field
 
 ```c
@@ -496,12 +554,13 @@ Why this specific shape works:
   the flags it does touch don't matter — the real status flags get
   restored from the stack at the final `RTI`, not from whatever's live
   when you `jmp $ea31`), a one-instruction hook body is enough.
-- JiffyDOS (this machine's installed ROM replacement, confirmed via boot
-  banner: "JIFFYDOS V6.01") preserves standard KERNAL entry points
-  including `$ea31` for compatibility, so this works unmodified.
+- When this was written the machine ran JiffyDOS (boot banner "JIFFYDOS
+  V6.01"), which keeps standard KERNAL entry points including `$ea31`, so
+  this worked unmodified. The ROMs can change (see "The ROMs are not
+  stock" under Ultimate64 network control), so don't assume JiffyDOS.
 
 Verification technique used: after deploying and letting the program
-return to `READY.`, poll `$d020` a few times a second via `ru64 peek` —
+return to the BASIC prompt, poll `$d020` a few times a second via `ru64 peek` —
 watching the value change on its own (with no program actively running)
 proves the hook is live and outlives the program that installed it.
 
@@ -523,6 +582,56 @@ no equivalent of character mode's bit-7 reverse-video trick (that only
 works because the char ROM has separate pre-baked mirror glyphs) — for
 sprites, precomputed alternate bitmaps + pointer swap is the standard
 substitute. Downstream project: `cbm-joy`.
+
+## Moving sprites smoothly: frame sync, `$D010` order, reading keys
+
+From the trial project `france` (8 sprites on a circle, in asm, C and
+BASIC), all confirmed on `u64elite`.
+
+- **Frame sync with IRQs off** (asm): `lda $D012 / cmp #251 / bne` is
+  enough. Line 251 is just below the display window, so updates done there
+  never tear. Smooth at 50 Hz.
+- **Frame sync with the KERNAL IRQ on** (e.g. cc65 C): poll for a *range*
+  of lines, `(VIC.ctrl1 & 0x80) || VIC.rasterline >= 251` (lines 251-311
+  on PAL), then wait to leave it. The IRQ can hold the CPU for several
+  lines, so an exact-line compare can skip a frame (reasoned, not
+  observed). Measured 50.3 updates/s against PAL's 50.12, so no frames
+  were dropped.
+- **Write `$D010` before the X registers when updates are slow.** BASIC
+  takes about 0.18 s for 17 POKEs, so a sprite crossing X = 256 is briefly
+  half-updated. With `$D010` written first, the in-between position is
+  ±256 from the target, which near the boundary lands off-screen: the
+  sprite blinks out for a frame instead of flashing in the wrong place.
+- **Reading the keyboard matrix with the KERNAL IRQ running**: wrap the
+  `$DC00` write and the `$DC01` read in `SEI`/`CLI`. The IRQ's keyboard
+  scan rewrites `$DC00`, and an IRQ between your write and your read gives
+  you the wrong column. With IRQs off, no wrap is needed. Key positions and
+  `$C5` values are in C64-REFERENCE.md's CIA section.
+- **Edge-detect key presses** against the previous poll, so a held key
+  doesn't keep toggling.
+
+## BASIC 2.0 performance
+
+Measured in VICE by bracketing code with `t=ti` … `print (ti-t)/<count>`.
+TI counts emulated jiffies, so warp mode doesn't distort the result. Time
+setup stages separately (`t1=ti`, `t2=ti`, …) to find the slow one. If
+sprites are on, `poke 53269,0` before printing so none covers the result.
+
+- **Numeric literals are re-parsed every time a line runs.** Moving four
+  constants out of a 64-pass loop into variables cut that stage from 6.6 s
+  to 4.1 s, which mattered far more than halving the trig calls.
+- **Integer variables (`A%`) aren't faster.** BASIC computes in floating
+  point and converts on every read and store. Integer *arrays* do save
+  memory (2 bytes per element instead of 5).
+- **Variables are found by linear search in creation order**, so create
+  the ones used in hot loops first.
+- **GOTO/THEN targets are stored as ASCII digits** and parsed at run time,
+  so short line numbers save a little (not measured or sourced yet).
+
+Source for the integer and search-order points: c64doc
+`c64-mapping-the-64-html`, the variable-storage text under `$2D`/`$2E`
+("they do not offer a speed advantage either, and in many cases will
+actually slow the program down").
 
 ## LZSS compression for C64 assets, with a working 6502 decompressor
 

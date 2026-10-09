@@ -6,7 +6,7 @@ Either way this file loads. Paths here are relative to `~/src/cbm/`.
 
 `~/src/cbm/` itself is not a git repo; it holds only the `CLAUDE.md` symlink and the project
 folders. Each project below is its own repo with its own GitHub remote, except cbm-joy, which is
-deliberately local-only. Projects refer to each other by **relative path** (`../c64home`,
+deliberately local-only. Trial projects (see below) have no git at all. Projects refer to each other by **relative path** (`../c64home`,
 `../c64doc`), never by absolute path, so the whole tree can move as one unit. Unrelated projects stay
 directly under `~/src/`.
 
@@ -36,5 +36,7 @@ Start with `c64home/README.md` (what c64home is, ground rules for sibling projec
 - Before writing a findings file, grep c64home's docs for each item and leave out what's already
   there. Details are under "What not to send" in `c64home/KNOWLEDGE.md`.
 - New Commodore projects go in a new folder here, referencing siblings by relative path. A project
-  whose README or first prompt calls it a **trial** is a throwaway test: its findings are welcome,
-  but its code isn't a `lib/` candidate.
+  whose README or first prompt calls it a **trial** is an experiment: its findings are welcome, but
+  while it's a trial it gets no git repo or remote (don't offer `git init`), no row in the table
+  above, and its code isn't a `lib/` candidate. That's a stage, not a verdict: Antti may promote a
+  trial to a regular project, and only then does it get all three.

@@ -202,6 +202,19 @@ fine (the CPU doesn't care the target address happens to be page zero);
 only the asm routine's *internal* addressing needs true zero-page
 residency to be legal at all.
 
+### Size costs: the C runtime, and `int` promotion pulling in helpers
+
+- A cc65 C program carries about 270 bytes of runtime (startup, `callmain`,
+  `condes`, `zerobss`, `pushax`, zero-page init) before any of your own
+  code. For a small program that can double its size compared with asm.
+  Measured in france (a trial project): 1425 bytes for C vs 1000 for asm,
+  with only 299 vs about 147 bytes of actual program code. Use `-m` for a
+  linker map to see where the bytes go.
+- C's integer promotion turns `unsigned char` arithmetic into `int`. For
+  example, `msb |= 1 << i` with `unsigned char i` pulls in the `aslax4`
+  shift helper (17 bytes, plus call overhead). A small lookup table of bit
+  masks, or a shift on an `unsigned char` variable, avoids it.
+
 ## See also
 
 6502/6510 opcode reference (documented + undocumented/illegal, including

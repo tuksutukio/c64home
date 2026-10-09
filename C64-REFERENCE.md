@@ -265,9 +265,14 @@ timer, ~60 Hz).
 A sprite's `$D0nn` X/Y registers give its **top-left pixel** in raw VIC
 coordinate space (0-511 X via `$D010`'s MSB extension, 0-255 Y) — not
 screen-relative pixels. Visible display area in that raw space: **X
-24-344** (320px wide), **Y 50-250** (200px tall). For an unexpanded
-24×21px sprite to stay fully on-screen, clamp its position to **X in
-[24, 320]** (344-24), **Y in [50, 229]** (250-21). Confirmed against
+24-343** (320px wide), **Y 50-249** (200px tall), both **inclusive**. For
+an unexpanded 24×21px sprite to stay fully on-screen, clamp its position
+to **X in [24, 320]**, **Y in [50, 229]**. To keep only the sprite's *lit*
+pixels on-screen, clamp with their bounding box instead of the full 24×21
+box, which allows a little more travel. Sources: c64doc
+`c64-mapping-the-64-html`, `$D000`-`$D00F` entry ("starts at line 50 and
+extends to line 249", "the 320 dot positions between positions 24 and
+344"); also
 [C64-Wiki's Sprite article](https://www.c64-wiki.com/wiki/Sprite) and
 [Dustlayer's VIC-II sprite guide](https://dustlayer.com/vic-ii/2013/4/28/vic-ii-for-beginners-part-5-bringing-sprites-in-shape).
 Sprites aren't limited to the visible 320×200 area — the full 512×256
@@ -394,6 +399,16 @@ addresses:
   ~60 Hz source that drives `$EA31`'s jiffy-clock/keyboard-scan work —
   which is exactly the KERNAL continuation our IRQ hook chains into (see
   KNOWLEDGE.md).
+  - Reading one key directly: write a column mask with that column's bit
+    low to `$DC00`, read `$DC01`, and a 0 bit means the key in that row is
+    down. Key code = column × 8 + row. **Space bar** = column 7, row 4
+    (write `$7F`, test bit 4; key code 60). Joystick port 1's fire button
+    shares PB4, so it reads as space too. With the KERNAL IRQ running,
+    wrap the write and read in `SEI`/`CLI` (see KNOWLEDGE.md).
+  - `$C5` LSTX holds the key code of the key currently down, **64 = none**
+    (same key codes as above). From BASIC, `PEEK(197)` is the easy way.
+  - Sources: c64doc `c64-mapping-the-64-html`, `$C5` entry and the key-code
+    table under `$CB`.
 - **CIA2** (`$DD00`-`$DDFF`): serial bus (IEC), user port, RS-232; its
   ICR (bit 7 set) triggers **NMI**, not IRQ — relevant if hooking `NMINV`
   (`$0318`) instead of `CINV`.
