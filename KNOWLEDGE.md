@@ -52,6 +52,18 @@ scratch for every spin-off). Point at the file(s) in your own project
 rather than pasting the code inline; whoever reviews the finding reads
 it directly from there.
 
+**What not to send**, to save both sides the triage:
+- Anything already in KNOWLEDGE.md, C64-REFERENCE.md, the other reference
+  files or `lib/`. Grep them first. If something's there but wrong, or only
+  web-sourced and you found a c64doc source, that's worth sending.
+- Pure confirmations ("the Makefile pattern still works", "source X had
+  what I needed"). Report only what broke or was missing.
+- Code from trial/throwaway projects (e.g. `france`, a c64doc test) as a
+  `lib/` candidate. Flag code from real projects; Antti decides which
+  projects are trials.
+- Findings about c64doc's lookup workflow do belong here (c64home relays
+  them to `../c64doc/CLAUDE.md`).
+
 Whoever's next doing housekeeping on this repo (told explicitly to check
 — there's no automated trigger, by design, see the discussion this
 convention came out of) reads any `findings-*.md` present, sanitizes and
@@ -220,7 +232,11 @@ it into a reference doc other sessions will act on.
 - `ru64 <host> peek <addr> -n <len> [-o file]` — reads memory over the same
   unicast REST path. Works over WiFi. This is the main debugging primitive
   available on a WiFi-only setup (see below).
-- `ru64 <host> reset` — remote reset, confirmed working over WiFi.
+- `ru64 <host> reset` — remote reset, confirmed working over WiFi. Also the
+  quickest way to silence a looping SID program.
+- `ru64 --help` lists more (`reboot`, `poweroff`, `pause`/`resume`, `play`
+  for SID/MOD files, …). They're known and deliberately not documented here
+  until a project actually needs one; no need to report them as findings.
 
 ### Video/audio streaming is Ethernet-only — screenshot doesn't work over WiFi
 

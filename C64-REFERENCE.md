@@ -295,7 +295,11 @@ per line isn't constant. `$D011` bit 3 (RST8, raster IRQ compare MSB) +
 above) is the standard way to trigger a raster IRQ instead of relying on
 the CIA1-timer-driven default IRQ our `irq_border.s` hooks.
 
-**Sources**: [raster time, C64-Wiki](https://www.c64-wiki.com/wiki/raster_time)
+**Sources**: [raster time, C64-Wiki](https://www.c64-wiki.com/wiki/raster_time);
+lines and cycles per line confirmed in c64doc `c64-ml-tutorials`,
+`Docs/Misc/C64/Vic/vic_article.txt` section 3.4 (the "VIC article" by
+Christian Bauer). The refresh rates follow from those and the system clock
+(985248 / 19656 ≈ 50.12 Hz for PAL), see SID below.
 
 ## SID registers (`$D400`-`$D41C`)
 
@@ -316,6 +320,49 @@ the CIA1-timer-driven default IRQ our `irq_border.s` hooks.
 | `$D41C` | ENV3 | Voice 3 envelope output (read-only) |
 
 **Source**: [SID reference, oxyron.de](https://www.oxyron.de/html/registers_sid.html)
+
+### Note frequencies
+
+The 16-bit frequency register is linear in pitch: `Fout = Fn × Fclk / 16777216` Hz
+(2^24), so `Fn = Hz × 16777216 / Fclk`. The system clock is **985248 Hz on PAL** and
+1022727 Hz on NTSC. That gives about 0.05873 Hz per step on PAL and 0.06097 on NTSC.
+Example: PAL A4 (440 Hz) = 7493 = `$1D45`. The PAL note table in the User's Guide
+agrees with a computed equal-temperament table to within 1 (its values look truncated
+rather than rounded). Tables are PAL- or NTSC-specific; a PAL table on NTSC plays about
+4% sharp.
+
+**Sources**: formula in c64doc `c64-butterfield-ml-revised` p.358 (PDF) and
+`c128-programmers-reference-guide` p.369 (PDF); clocks in
+`c128-programmers-reference-guide` p.394 (PDF); PAL note table in
+`c64-users-guide-remake` p.170-171 (PDF). Mapping the 64 rounds the clocks to
+985250 / 1022730.
+
+### ADSR timings
+
+`$D405` = attack × 16 + decay, `$D406` = sustain level × 16 + release. Gate on
+(`$D404` bit 0 = 1) runs attack → decay → hold at sustain; gate off starts release.
+Decay and release share one time table.
+
+| Value | Attack | Decay / release |
+|---|---|---|
+| 0 | 2 ms | 6 ms |
+| 1 | 8 ms | 24 ms |
+| 2 | 16 ms | 48 ms |
+| 3 | 24 ms | 72 ms |
+| 4 | 38 ms | 114 ms |
+| 5 | 56 ms | 168 ms |
+| 6 | 68 ms | 204 ms |
+| 7 | 80 ms | 240 ms |
+| 8 | 100 ms | 300 ms |
+| 9 | 250 ms | 750 ms |
+| 10 | 500 ms | 1.5 s |
+| 11 | 800 ms | 2.4 s |
+| 12 | 1 s | 3 s |
+| 13 | 3 s | 9 s |
+| 14 | 5 s | 15 s |
+| 15 | 8 s | 24 s |
+
+**Source**: c64doc `c64-mapping-the-64-html`, `$D405` and `$D406` entries.
 
 ## CIA registers (6526, `$DC00`-`$DC0F` and `$DD00`-`$DD0F`)
 
