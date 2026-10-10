@@ -29,15 +29,17 @@ Start with `c64home/README.md` (what c64home is, ground rules for sibling projec
   KERNAL, DOS, drive internals). Cite as `<doc-id> p.<PDF page>`. The workflow is in
   `c64doc/CLAUDE.md`. The library itself lives only on Antti's daily Mac (and two backup drives); on
   other machines only the catalog is available.
-- **Record the source of every fact** you write into docs, findings files or code comments: a
-  c64doc citation, a web URL, "measured on hardware" or "reasoned, untested". Anything from the
-  web is lower trust until a c64doc source confirms it, so label it as web-sourced, and say so
-  when it's web-only. Web fetches have gone wrong before (see "Research process notes" in
-  `c64home/KNOWLEDGE.md`).
-- **Mind what goes upstream.** c64home is public on GitHub; c64doc is private. Anything pushed to
-  c64home is published, so cite and paraphrase, quote only short passages, and never paste whole
-  pages of a book, a web page or a library file there. Check a repo's visibility (`gh repo view
-  --json visibility`) before pushing anything sourced to it.
+- **Web lookups are the exception**, for when c64doc and c64home don't cover a specific problem.
+  Using local sources needs no record. Anything taken from the web does:
+  - Save what you used into c64doc as a new library item (see "Adding something from the web" in
+    `c64doc/CLAUDE.md`). It stays on this machine, and its card records the URL and fetch date.
+  - Cite it by its c64doc id from then on, and label facts that rest only on it as web-sourced.
+    They're lower trust than the books until something confirms them. Web fetches have gone wrong
+    before (see "Research process notes" in `c64home/KNOWLEDGE.md`).
+- **Mind what goes upstream.** c64home is public on GitHub; c64doc is private, and its library
+  files aren't in git at all. Anything pushed to c64home is published, so paraphrase, quote only
+  short passages, and never paste pages of a book, a web page or a library file there. Check a
+  repo's visibility (`gh repo view --json visibility`) before pushing sourced material to it.
 - **c64home is the source of truth for shared tooling and knowledge, and is read-only from sibling
   projects.** Use its tools by relative path (e.g. `../c64home/tools/select-u64.sh`), copy `lib/`
   code into your own project, and send reusable findings back as a new
