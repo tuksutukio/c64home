@@ -564,6 +564,44 @@ return to the BASIC prompt, poll `$d020` a few times a second via `ru64 peek` �
 watching the value change on its own (with no program actively running)
 proves the hook is live and outlives the program that installed it.
 
+## Raster IRQs with the KERNAL banked out (works with any installed ROM)
+
+The pattern above runs through the KERNAL's `$FF48` stub and `$EA31`, so
+it depends on whichever KERNAL is installed, and ours can change. For a
+program that takes over the machine (games, demos, anything with a
+raster split), bank the ROMs out and own the hardware vectors instead.
+Confirmed on `u64elite` with its custom KERNAL (trial project `france`,
+the 16-sprite multiplexer below).
+
+```
+sei
+lda #$7F : sta $DC0D : sta $DD0D   ; CIA1 IRQs and CIA2 NMIs off
+lda $DC0D : lda $DD0D              ; clear anything pending
+lda #$35 : sta $01                 ; KERNAL+BASIC out (RAM), I/O stays in
+; point $FFFE/$FFFF at the IRQ handler, $FFFA/$FFFB at an RTI (RAM now)
+lda $D011 : and #$7F : sta $D011   ; raster compare bit 8 = 0
+lda #<line> : sta $D012
+lda #1 : sta $D01A                 ; raster IRQ on
+lda #$FF : sta $D019               ; ack
+cli
+```
+
+- The handler saves and restores its own registers (there's no `$FF48`
+  stub doing it any more), acknowledges with a write to `$D019`, and ends
+  with `rti`.
+- To chain several IRQs per frame, each handler writes the next line to
+  `$D012` and the next handler's address to `$FFFE/$FFFF`.
+- Anything that needs the KERNAL (e.g. clearing the screen via `$FFD2`)
+  must run before the `$01` write.
+- Read the keyboard directly from the CIA (see "Moving sprites smoothly"
+  below). No `SEI` wrap is needed, since no KERNAL scan runs.
+- Side effects: RUN/STOP and RESTORE do nothing, and the program never
+  returns to BASIC, so reset to exit.
+
+Source for the `$01` banking: c64doc `c64-mapping-the-64-html`, `$01`
+entry (HIRAM = 0 swaps RAM in for the KERNAL at `$E000-$FFFF`, and BASIC
+goes out with it; CHAREN = 1 keeps I/O).
+
 ## Sprite-authoring workflow: text grid → ca65 bytes, pointer-swap for animation
 
 Hand-author sprite bitmaps as plain-text 24×21 grids (`.` = 0, `*` = 1,
@@ -609,6 +647,48 @@ BASIC), all confirmed on `u64elite`.
   `$C5` values are in C64-REFERENCE.md's CIA section.
 - **Edge-detect key presses** against the previous poll, so a held key
   doesn't keep toggling.
+
+## Sprite multiplexing, fixed zones: 16 sprites from 8
+
+Reuse the 8 hardware sprites lower down the screen by rewriting their
+registers once the upper set has been drawn. From the trial project
+`france`: two 8-sprite carousels, one per screen half, confirmed clean on
+`u64elite`. Uses the ROM-independent raster IRQ setup above.
+
+**The VIC-II rules it rests on** (c64doc `c64-ml-tutorials`,
+`Docs/Misc/C64/Vic/vic_article.txt`, Bauer's VIC article, sprite section):
+- A sprite's first line appears on raster line **Y+1**.
+- Once a sprite has been displayed, moving its Y to a later line displays
+  it again there, and X, colour and data pointer can change too. At most 8
+  sprites can be on any one raster line.
+
+**Recipe (PAL, default YSCROLL 3):**
+- Upper set at sprite Y 50..124, so the last upper line is raster 145.
+- Split IRQ at raster **146** copies the lower set's X/Y, `$D010` and
+  colours from a precomputed shadow, with straight-line `lda abs / sta abs`.
+  About 250 cycles plus IRQ entry, and line 147 is a bad line, so it's done
+  around line 151 (estimated, not measured).
+- Lower set at sprite Y ≥ 155 (first line raster 156): about 4 lines of
+  margin. No torn edges in VICE or on hardware.
+- A second IRQ at raster **251**, below the window, puts the upper set
+  straight into the registers, computes the lower set into the shadow, runs
+  the frame logic, and re-arms the split.
+- Change X and colour only after every upper sprite has *finished*: they
+  take effect while the sprite is drawn, so changing them mid-sprite
+  recolours or shears its bottom lines. Changing Y mid-sprite is harmless.
+
+**Keep it simple: no sprite crosses the split.** Sprites that move freely
+over the whole screen ("general" multiplexing) need sorting by Y every
+frame and moving IRQ lines, several times the work. Both kinds are
+explained in c64doc `c64-ml-tutorials`,
+`Ml tutorials/Html tutorials/CovertBitOps/sprite.htm` (Lasse Öörni, Covert
+Bitops), which calls the fixed-zone kind "boss enemy" multiplexing.
+
+**Cost**: about 110 lines of asm on top of a single 8-sprite carousel.
+
+**Language**: the split handler has to be asm. A cc65 C interrupt handler
+is too slow and its timing too variable, and BASIC can't run code on a
+raster interrupt at all (reasoned, not tested).
 
 ## BASIC 2.0 performance
 

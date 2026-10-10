@@ -79,7 +79,7 @@ bit 0 (`AND #$F8; ORA #$06`) to bank out BASIC ROM while keeping
 KERNAL+I/O enabled during program execution, then restores the original
 value on exit. See KNOWLEDGE.md's cc65 build-config section.
 
-**Source**: [Bank Switching, C64-Wiki](https://www.c64-wiki.com/wiki/Bank_Switching); [6510 Processor Port, C64 OS](https://www.c64os.com/post/6510procport)
+**Source**: c64doc `c64-mapping-the-64-html`, `$01` entry; [Bank Switching, C64-Wiki](https://www.c64-wiki.com/wiki/Bank_Switching); [6510 Processor Port, C64 OS](https://www.c64os.com/post/6510procport)
 
 ### RAM vectors (`$0300`-`$033B`)
 
@@ -124,6 +124,10 @@ These live in KERNAL ROM and can't be changed (unless KERNAL ROM itself is
 banked out) — that's *why* the RAM vectors above (`CINV` etc.) exist: the
 ROM routine at `$FF48` pushes registers then does `JMP ($0314)`, handing
 control to RAM so user programs can intercept it without touching ROM.
+The default values shown are the stock KERNAL's; a replacement ROM may
+differ. With the KERNAL banked out (`$01` = `$35`), these addresses are
+RAM and a program sets them itself: see KNOWLEDGE.md, "Raster IRQs with
+the KERNAL banked out".
 
 **Source**: [Interrupt, C64-Wiki](https://www.c64-wiki.com/wiki/Interrupt); [Internals of BRK/IRQ/NMI/RESET on a MOS 6502, pagetable.com](https://www.pagetable.com/?p=410)
 
