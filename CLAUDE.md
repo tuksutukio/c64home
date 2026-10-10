@@ -34,11 +34,17 @@ Start with `c64home/README.md` (what c64home is, ground rules for sibling projec
   web, **tell Antti right away**: what you looked for, and where the local docs fell short (not
   covered, unclear, contradictory, unreadable OCR). Also list each such gap in your next findings
   file, so it can be closed locally. Anything taken from the web is handled like this:
-  - Save what you used into c64doc as a new library item (see "Adding something from the web" in
-    `c64doc/CLAUDE.md`). It stays on this machine, and its card records the URL and fetch date.
-  - Cite it by its c64doc id from then on, and label facts that rest only on it as web-sourced.
-    They're lower trust than the books until something confirms them. Web fetches have gone wrong
-    before (see "Research process notes" in `c64home/KNOWLEDGE.md`).
+  - Save what you used in your own project's `sources/` folder, with a note of the URL, the fetch
+    date and what it was for. It stays local and is never pushed anywhere public.
+  - Label facts that rest only on it as web-sourced. They're lower trust than the books until
+    something confirms them. Web fetches have gone wrong before (see "Research process notes" in
+    `c64home/KNOWLEDGE.md`).
+  - If it's Commodore reference material worth keeping in the library, propose it in a c64doc
+    findings file (next bullet). Project-specific material (a melody, artwork) stays in the project.
+- **c64doc is read-only from sibling projects, like c64home.** Don't add, edit or remove library
+  items or cards from another project. Send proposals and gaps as a new
+  `c64doc/findings-<unix-timestamp>.md` (`date +%s`), pointing at the file in your `sources/`;
+  whoever works in c64doc itself decides what joins the library.
 - **Mind what goes upstream.** c64home is public on GitHub; c64doc is private, and its library
   files aren't in git at all. Anything pushed to c64home is published, so paraphrase, quote only
   short passages, and never paste pages of a book, a web page or a library file there. Check a
