@@ -29,8 +29,11 @@ Start with `c64home/README.md` (what c64home is, ground rules for sibling projec
   KERNAL, DOS, drive internals). Cite as `<doc-id> p.<PDF page>`. The workflow is in
   `c64doc/CLAUDE.md`. The library itself lives only on Antti's daily Mac (and two backup drives); on
   other machines only the catalog is available.
-- **Web lookups are the exception**, for when c64doc and c64home don't cover a specific problem.
-  Using local sources needs no record. Anything taken from the web does:
+- **Web lookups are allowed** (Antti, 2026-10-10) when c64doc and c64home don't cover a specific
+  problem, but local sources come first, and using them needs no record. Whenever you do go to the
+  web, **tell Antti right away**: what you looked for, and where the local docs fell short (not
+  covered, unclear, contradictory, unreadable OCR). Also list each such gap in your next findings
+  file, so it can be closed locally. Anything taken from the web is handled like this:
   - Save what you used into c64doc as a new library item (see "Adding something from the web" in
     `c64doc/CLAUDE.md`). It stays on this machine, and its card records the URL and fetch date.
   - Cite it by its c64doc id from then on, and label facts that rest only on it as web-sourced.
