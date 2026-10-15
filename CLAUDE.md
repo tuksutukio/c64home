@@ -60,3 +60,7 @@ Start with `c64home/README.md` (what c64home is, ground rules for sibling projec
   while it's a trial it gets no git repo or remote (don't offer `git init`), no row in the table
   above, and its code isn't a `lib/` candidate. That's a stage, not a verdict: Antti may promote a
   trial to a regular project, and only then does it get all three.
+
+## Open items
+
+@OPEN.md
