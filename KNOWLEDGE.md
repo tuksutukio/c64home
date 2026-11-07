@@ -61,8 +61,9 @@ it directly from there.
 - Code from trial/throwaway projects (e.g. `france`, a c64doc test) as a
   `lib/` candidate. Flag code from real projects; Antti decides which
   projects are trials.
-- Findings about c64doc's lookup workflow do belong here (c64home relays
-  them to `../c64doc/CLAUDE.md`).
+- Findings about c64doc (its lookup workflow, gaps, bad OCR, documents
+  worth adding). Write those as a new `../c64doc/findings-<unix-timestamp>.md`
+  instead: c64doc is its own keeper, and only a session in c64doc changes it.
 
 Whoever's next doing housekeeping on this repo (told explicitly to check
 — there's no automated trigger, by design, see the discussion this
