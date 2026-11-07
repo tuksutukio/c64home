@@ -3,3 +3,4 @@ build/
 .DS_Store
 .ultimate_host
 findings-*.md
+__pycache__/

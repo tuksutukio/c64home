@@ -93,7 +93,9 @@ Both cc65/ru64 and VICE (for `petcat`) are already set up on this machine
 ```
 src/                C/asm/BASIC sources
 build/              build output (.prg etc), gitignored
-tools/              helper scripts: screendump.py, select-u64.sh, u64-hosts.txt
+tools/              helper scripts: screendump.py, select-u64.sh, u64-hosts.txt,
+                    vicetest.py (automated tests in VICE; third-party MIT code by
+                    Konstantinos Patronas, see its header and vicetest.LICENSE)
 lib/                reusable code for projects to pull in (see above)
 Makefile            build + deploy targets
 KNOWLEDGE.md        accumulated gotchas/discoveries (see above)
