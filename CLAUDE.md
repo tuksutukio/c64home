@@ -67,7 +67,8 @@ Start with `c64home/README.md` (what c64home is, ground rules for sibling projec
   whose README or first prompt calls it a **trial** is an experiment: its findings are welcome, but
   while it's a trial it gets no git repo or remote (don't offer `git init`), no row in the table
   above, and its code isn't a `lib/` candidate. That's a stage, not a verdict: Antti may promote a
-  trial to a regular project, and only then does it get all three.
+  trial to a regular project, and only then does it get git and a row. A GitHub remote only when he
+  asks for one, private unless he explicitly says public ("keep this" never means a public repo).
 
 ## Open items
 
