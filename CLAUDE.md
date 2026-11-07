@@ -53,6 +53,10 @@ Start with `c64home/README.md` (what c64home is, ground rules for sibling projec
   files aren't in git at all. Anything pushed to c64home is published, so paraphrase, quote only
   short passages, and never paste pages of a book, a web page or a library file there. Check a
   repo's visibility (`gh repo view --json visibility`) before pushing sourced material to it.
+- **Use the Ultimates sparingly** and leave them as you found them: restore every setting you change
+  (REU, CPU speed, drives) and say so. Delete files in their `/Temp` only with Antti's OK each time.
+- **Evidence sent upstream** (bug reports to other projects): reproduce on their unmodified code first;
+  memory dumps only up to `$CFFF`, because Antti's own ROM images sit above it; never share a full dump.
 - **c64home is the source of truth for shared tooling and knowledge, and is read-only from sibling
   projects.** Use its tools by relative path (e.g. `../c64home/tools/select-u64.sh`), copy `lib/`
   code into your own project, and send reusable findings back as a new
