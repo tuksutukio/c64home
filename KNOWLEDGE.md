@@ -229,8 +229,10 @@ it into a reference doc other sessions will act on.
   runs a PRG for N emulated cycles and saves a 384×272 PNG, in about a
   second of wall time. Two runs with different N show motion and direction.
   `-default` ignores saved VICE settings, so this is a stock C64, unlike the
-  Ultimates (see "The ROMs are not stock"). **The GTK build still opens a
-  window while it runs**, on Antti's desktop, so say so before using it.
+  Ultimates (see "The ROMs are not stock"). The GTK build opens a window
+  that takes focus, even with `-minimized`; **add `-console` to run it with
+  no window at all**, as `tools/vicetest.py` does (confirmed 2026-11-07:
+  a full boot-and-run test, nothing appeared on screen).
 
 ## Ultimate64 network control
 
