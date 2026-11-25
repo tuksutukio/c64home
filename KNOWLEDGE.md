@@ -234,6 +234,14 @@ it into a reference doc other sessions will act on.
   no window at all**, as `tools/vicetest.py` does (confirmed 2026-11-07:
   a full boot-and-run test, nothing appeared on screen).
 
+  **Disk-change checks with true drive emulation** (from xum1541,
+  2026-11-25): `tools/vicetest.py` with
+  `extra=["-autostartprgmode", "1", "-drive8type", "1541", "-8", "a.d64",
+  "-drive9type", "1541", "-9", "b.d64"]`, then `v.run('load"*",8')` and
+  `v.run("list")`. `-autostartprgmode 1` injects the autostart PRG into
+  memory, so the drives stay untouched. vicetest always autostarts an
+  image, so this needs a dummy boot PRG.
+
 ## Ultimate64 network control
 
 - The underlying mechanism is officially called the **Ultimate Command
@@ -834,3 +842,106 @@ statefile it wants (own copy, or point at this repo's) — the two aren't
 coupled. If a project ever needs the selector itself to behave
 differently, fork a local copy then; these are small scripts, so that's a
 cheap, reversible decision to defer rather than commit to upfront.
+
+## Real 1541/1571 drives from the Mac (opencbm + xum1541)
+
+From the xum1541 (Diskmasher) project, 2026-11-25: an xum1541 USB adapter,
+opencbm from Homebrew, two 1571s (devices 8 and 9) run in 1541 mode. The
+details and tested tool behaviour are in `../xum1541/opencbm-tools.md` and
+its `CLAUDE.md`; `../xum1541/drive/erase.s` is a 71-byte example of code
+run inside the drive.
+
+### Running your own code in the drive (no C64 needed)
+
+- **Job queue:** job codes at `$00–$05` (one per buffer), track/sector for
+  job n at `$06+2n`. Buffer 2 is `$0500`, its job byte `$02`, its header
+  `$0A/$0B`. Codes: `$80` read sector, `$90` write sector, `$B0` seek, `$C0`
+  bump, `$E0` execute (runs the code in that job's buffer once the head is
+  on the track). The result replaces the code: `$01` OK, `$08` write
+  protected, `$0F` drive not ready; `$02–$0B` map to DOS errors 20–29.
+- **From the Mac:** `cbmctrl upload <unit> 0x500 code.bin`, then write the
+  header and the job byte with `upload`, and poll the job byte with
+  `cbmctrl download <unit> 0x2 1 -` until bit 7 clears (about 0.1 s a call).
+- **Order:** a `$C0` bump first (after a reset the controller doesn't know
+  where the head is), then a `$B0` seek to track 18 before sector jobs: the
+  seek teaches the drive the disk ID; without it reads fail with 29.
+- **1571:** send `U0>M0` (1541 mode) first, and leave an execute job through
+  `JMP $F969`, the job-exit address in both the 1541 ROM and the 1571's
+  1541-mode ROM. Assemble with ca65 + ld65.
+- **Write-protect sense:** `$1C00` bit 4 (0 = protected), readable with
+  `cbmctrl download <unit> 0x1C00 1`.
+
+### Drive behaviour
+
+- **74,DRIVE NOT READY can be the head's position, not the disk.** After a
+  reset or disk change the DOS checks readiness by reading one header on
+  whatever track the head is on (1541 ROM `LC63D` → `LD00E`). On a blank or
+  unreadable track it answers 74 until `I`, even after the head is back on a
+  good track. Fix: bump, seek 18, `I`. (74's documented meaning:
+  drive-1571-users-guide-1985 p.110.)
+- **The 1571's write-protect sensor is optical:** clear tape over the notch
+  lets light through and the disk stays writable. Use opaque tape.
+- **The disk ID lives in two places:** the BAM (18/0 `$A2–$A3`, what a
+  listing shows) and every sector header, written only by a format.
+  Sector-level copies (`d64copy`) write the BAM, not the headers. To see the
+  header ID: `I`, then `cbmctrl download <unit> 0x12 2` (`$12/$13` the ID
+  learnt from the headers, `$16/$17` the last header read;
+  c64-anatomy-of-the-1541 p.111). The ID is any two characters, not hex
+  (drive-1571-users-guide-1985 p.18).
+- A drive that keeps spinning after a knock (probably seen as a disk
+  change) stops with `cbmctrl reset`.
+
+### opencbm tools: tested quirks
+
+- **Exit codes lie:** `cbmread`/`cbmwrite` exit 0 on failure. Judge by the
+  output (`[Fatal] ...`, a DOS status other than 00) and, for reads, that the
+  file exists. `d64copy` creates the image at full size before reading, so
+  only its final `N blocks copied.` proves a complete read.
+- **`cbmctrl reset` + 2 s before every `d64copy`:** right after
+  `cbmread`/`cbmwrite` it can stall (once leaving the drive dead until a
+  power cycle).
+- **Reset after every `d64copy` on a 1571:** it can leave the drive at 2 MHz
+  under its 1541-mode DOS (VIA 1 `$1801` bit 5 still set, believed to be the
+  1/2 MHz select; unconfirmed, drive-1571-service-manual-1986 p.12 shows the
+  line but not the pin). Directory reads work, but every file write fails
+  with `74,DRIVE NOT READY,18,00` until a reset.
+- **One opencbm process at a time:** a second fails at once with
+  `LIBUSB_ERROR_ACCESS`, so stop a running `d64copy` before resetting.
+- **Stop tools with SIGTERM, never SIGKILL first:** `d64copy` exits on
+  SIGTERM within a second and the bus stays usable; SIGKILL mid-transfer is
+  the suspected cause of xum1541 lockups that needed a USB replug. So no
+  `subprocess.run(timeout=…)` (it SIGKILLs), yet a hung `cbmctrl` never
+  returns, so always run probes with a timeout of your own.
+- `cbmforng` uppercases its NAME,ID argument; `cbmctrl dir` prints names in
+  lowercase.
+
+### 40-track disks
+
+- `cbmforng -x` formats 40 tracks and writes a SpeedDOS-style extended BAM
+  at 18/0 `$C0–$D3`; the stock DOS still reports 664 blocks free, so a
+  listing never shows a 40-track disk. Only reading track 36 does
+  (`d64copy -s 36 -e 36`, about 3 s: 17/17 sectors = 40-track, none =
+  35-track, some = a decayed 40-track disk).
+- A 35-track format leaves an earlier 40-track format's tracks 36–40
+  readable, data and all. Writing $55 over them in write mode (code in the
+  drive, above) is the way back to a true 35-track disk without a degausser.
+- The stock DOS refuses a file whose chain reaches track 36
+  (`67,ILLEGAL TRACK OR SECTOR,36,00`).
+- A 40-track image needs a disk formatted to 40 tracks; onto a 35-track
+  format, tracks 36–40 give seek errors.
+- VICE's `c1541` edits files on tracks 1–35 of a 40-track image and leaves
+  36–40 and the extended BAM (SpeedDOS or DolphinDOS style) byte-identical,
+  but never writes beyond 35 (664 free; when full,
+  `67, ILLEGAL SYSTEM T OR S, 36, 01`).
+
+### VICE and real drives
+
+- **VICE with a real drive (OpenCBM device) on macOS doesn't work yet.** The
+  official VICE 3.9 build has hardened runtime and won't load Homebrew's
+  libopencbm; an ad hoc re-signed copy loads it, but `LOAD"$",8` gave
+  `?DEVICE NOT PRESENT`. Parked in `../xum1541/OPEN.md`.
+- **Testing hardware tools without hardware:** xum1541's `tests/` puts fake
+  opencbm tools on `PATH` (`tests/fake_opencbm.py`: simulated drive memory
+  and job queue running sector jobs against a real `.d64`, canned output
+  from real runs, a `.d64` builder). The pattern suits any project that
+  drives hardware through command-line tools.
