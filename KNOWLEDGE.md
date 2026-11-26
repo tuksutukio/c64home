@@ -850,6 +850,24 @@ opencbm from Homebrew, two 1571s (devices 8 and 9) run in 1541 mode. The
 details and tested tool behaviour are in `../xum1541/opencbm-tools.md` and
 its `CLAUDE.md`; `../xum1541/drive/erase.s` is a 71-byte example of code
 run inside the drive.
+Since then also a plain 1541 and a VIC-1541; `../xum1541/HARDWARE-TESTS.md`
+has the per-drive coverage matrix.
+
+### The bus
+
+- **Keep one drive on the IEC bus for timing or reliability work.** A second
+  device made every full `d64copy` read about 75 % slower (1541: 158 s vs
+  87 s; 1571: 92 s vs 52 s, each measured two or three times with the disks
+  swapped). `d64copy --help` says `serial2` "won't work if more than one
+  device is connected"; whether `auto` falls back because of it is
+  unverified. Both early `d64copy` stalls were with two drives on the bus;
+  one 1541 alone did 30 full reads in a row (82–83 s each, all images
+  identical). So "two devices cause stalls" is supported, not proven.
+- **Two drives on one unit number** answer together: a 1541 and a 1571 both
+  on 8 gave ` 8: *unknown*, footprint=<@B@@>`. An unknown model with a
+  footprint hints at a unit clash.
+- **`cbmctrl detect`'s model can be several words:** a 1541 or a VIC-1541
+  shows as ` 8: 1540 or 1541`. Parsers must not keep only the first word.
 
 ### Running your own code in the drive (no C64 needed)
 
@@ -890,6 +908,24 @@ run inside the drive.
   (drive-1571-users-guide-1985 p.18).
 - A drive that keeps spinning after a knock (probably seen as a disk
   change) stops with `cbmctrl reset`.
+- **Reading track 36 of a 35-track disk leaves the head there**, so after
+  the next reset the DOS answers 74 (the rule above). The 40-track check
+  below triggers it: run bump, seek 18, `I` after it. Tested on a 1571.
+- **The drive's own Copy and Rename (`C0:`/`R0:`) leave the next `cbmwrite`
+  failing with `71,DIR ERROR`** until `cbmctrl reset` (`I` doesn't help), on
+  a 1541 and a 1571. Each failed write leaves a 1-block directory entry whose
+  block the BAM doesn't count, so the next save can cross-link two files (a
+  test disk got one). Reset after C/R; `V` removes the stray entry. Cause
+  unchecked.
+- **After a scratch, `cbmwrite` failed with `74,DRIVE NOT READY,18,00` on a
+  1541** too, so the 1571's 2 MHz state (below) isn't the whole story;
+  possibly the fast-transfer code `cbmread` leaves in drive RAM (unchecked).
+  Safe rule: `cbmctrl reset` before any file write that follows other DOS
+  activity.
+- **The 1571's `FILES SCRATCHED` count is unreliable for long scratches:**
+  `22` for 6 files, `42` for 10, `5;` for 13, though every scratch was
+  complete; a 1541 counted 13 correctly. Check the directory, not the count.
+  (A reused counter at `$86`, per c64-anatomy-of-the-1541 p.144, is a guess.)
 
 ### opencbm tools: tested quirks
 
@@ -914,6 +950,19 @@ run inside the drive.
   returns, so always run probes with a timeout of your own.
 - `cbmforng` uppercases its NAME,ID argument; `cbmctrl dir` prints names in
   lowercase.
+- **`cbmread` also leaves a 1571 at 2 MHz** (`$1801` `$99` after a reset,
+  `$38` after one `cbmread`); reads stay fine and DOS commands run about
+  twice as fast.
+- **`cbmwrite` takes the file type from the local name cut to 16
+  characters**, even with `-o`: `abcdefghijkl.usr` was written as USR,
+  `abcdefghijklm.usr` as PRG. Pass `-f P|S|U|D` explicitly.
+- **`cbmread` opens files as PRG:** SEQ and USR need `name,s` / `name,u`, or
+  it fails with `64, FILE TYPE MISMATCH`.
+- **`cbmctrl command` sends its text raw** (no PETSCII conversion), so file
+  names in DOS commands must be uppercase ASCII. A lowercase `S0:name`
+  matches nothing and still answers `01, FILES SCRATCHED,00`.
+- **`cbmforng -r 2` prints the measured RPM** (e.g. `|297.31|`) while
+  formatting: a free speed check (stock drives here: 300.5–301.3).
 
 ### 40-track disks
 
@@ -945,3 +994,15 @@ run inside the drive.
   and job queue running sector jobs against a real `.d64`, canned output
   from real runs, a `.d64` builder). The pattern suits any project that
   drives hardware through command-line tools.
+- **A no-progress watchdog instead of a timeout:** stop a tool only when it
+  has printed nothing for N seconds (45 s for opencbm); a slow tool that
+  still prints is crawling, not stalled. Retry once, after a reset, only
+  repeatable operations (reads, full image writes, formats), never a partial
+  file write, and show every stall and retry to the user. (`stream_cmd` and
+  `stream_retrying` in `../xum1541/diskmasher.py`.)
+- **Hardware test practice** used there (`../xum1541/HARDWARE-TESTS.md`,
+  "Strategy"): confirm the disk in the drive is the agreed test disk before
+  any write or format; batch each drive's tests to save the flimsy 6-pin DIN
+  connectors; prefer worn disks; keep a per-drive coverage matrix and mark
+  cells stale when the code changes; run long unattended read loops with a
+  watchdog.
