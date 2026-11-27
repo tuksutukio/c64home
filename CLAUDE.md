@@ -55,6 +55,9 @@ Start with `c64home/README.md` (what c64home is, ground rules for sibling projec
   repo's visibility (`gh repo view --json visibility`) before pushing sourced material to it.
 - **Use the Ultimates sparingly** and leave them as you found them: restore every setting you change
   (REU, CPU speed, drives) and say so. Delete files in their `/Temp` only with Antti's OK each time.
+- **Testing on real hardware** (Antti, 2026-11-27): batch all the tests for one device to keep cable
+  changes few, since connectors wear (new-stock 6-pin DINs are flimsy). Long tests that need no
+  hands can run unattended while Antti is away, but always under a watchdog.
 - **Evidence sent upstream** (bug reports to other projects): reproduce on their unmodified code first;
   memory dumps only up to `$CFFF`, because Antti's own ROM images sit above it; never share a full dump.
 - **c64home is the source of truth for shared tooling and knowledge, and is read-only from sibling
